@@ -1,5 +1,7 @@
 function sliceMe() {
-    var a, b, c;
+    var a;
+    var b;
+    var c;
     a = 1;
     b = 2;
     c = 'test';
