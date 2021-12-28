@@ -2,6 +2,9 @@
 *_.js
 *_.json
 
+# others
+*.DS_Store
+
 # Logs
 logs
 *.log

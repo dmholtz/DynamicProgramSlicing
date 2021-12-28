@@ -1,4 +1,3 @@
-
 (function () {
     let writes = [];
 
@@ -23,7 +22,7 @@
                 console.log("Write value " + writeInfo.value +
                     " to variable " + writeInfo.name + ".");
             }
-            console.log(J$.smemory)
+            //console.log(J$.smemory) // shadow memory
         }
     };
 

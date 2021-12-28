@@ -20,3 +20,4 @@ echo "analysis: $analysis"
 
 #node ../../jalangi2/src/js/commands/jalangi.js --inlineIID --inlineSource --analysis $analysis $script
 node ../../jalangi2/src/js/commands/jalangi.js --analysis ../../jalangi2/src/js/runtime/SMemory.js --inlineSource --analysis $analysis $script
+#node ../../jalangi2/src/js/commands/jalangi.js --analysis ../../jalangi2/src/js/runtime/SMemory.js --analysis ../../jalangi2/src/js/sample_analyses/pldi16/TraceAll.js --inlineSource --analysis $analysis $script >tracefile.txt

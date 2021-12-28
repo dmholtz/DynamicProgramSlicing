@@ -1,0 +1,28 @@
+{
+  "dependencies": {
+    "acorn": "^8.6.0",
+    "argparse": "^2.0.1",
+    "escodegen": "^2.0.0",
+    "estraverse": "^5.3.0",
+    "fast-levenshtein": "^3.0.0",
+    "jalangi2": "^0.2.6"
+  },
+  "name": "dynamicprogramslicing",
+  "version": "1.0.0",
+  "description": "Dynamic program analysis for backward slicing",
+  "main": "scripts/testRunner.js",
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dmholtz/DynamicProgramSlicing.git"
+  },
+  "author": "dmholtz",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/dmholtz/DynamicProgramSlicing/issues"
+  },
+  "homepage": "https://github.com/dmholtz/DynamicProgramSlicing#readme"
+}
