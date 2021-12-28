@@ -45,20 +45,23 @@
         const analysisPromise = analyze(instrumentedCodeFile, analyses, initParams);
 
         // Load the analysis result
-        successfulResolve = function (result) {
+        successfulResolve = function (_) {
             console.log(`Analysis ${analysisFile} has run successfully.`)
 
             let analysisResult = fs.readFileSync(analyisOutFile, { encoding: 'utf-8' });
             analysisResult = JSON.parse(analysisResult);
-            console.log(analysisResult);
 
-            console.log("success");//, result);
-            //console.log("success ", result);
+            // Using the result, generate a slice and pretty-print the code
+            const trimmer = require('./trimmer.js');
+            const outputCode = trimmer.trim(inFile,
+                analysisResult.locs,
+                analysisResult.missingDeclarations);
+
+            fs.writeFileSync(outFile, outputCode, { encoding: 'utf-8' });
+            // console.log(_) // debugging
         }
+
         analysisPromise.then(successfulResolve, value => console.log("failed", value));
-
-
-        // Using the result, generate a slice and pretty-print the code
     }
 
     const args = parser.parse_args();

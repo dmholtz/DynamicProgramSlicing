@@ -16,7 +16,8 @@ function readTestCaseDescription(testCaseFile) {
 function run_slice(testCase) {
 
     const trimmer = require('./trimmer.js');
-    trimmer.trim(testCase["inputFile"], testCase["lines"]);
+    const outputCode = trimmer.trim(testCase["inputFile"], testCase["lines"]);
+    console.log(outputCode);
 }
 
 testCases = readTestCaseDescription("milestone1b_testCases.json");

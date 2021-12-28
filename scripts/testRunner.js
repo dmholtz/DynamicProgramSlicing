@@ -16,8 +16,7 @@
 
 	function compare(originalFile, predictedFile) {
 		expectedSlice = readFile(originalFile);
-		predictedSlice = readFile(originalFile); // modification for testing
-		// predictedSlice = readFile(predictedFile);
+		predictedSlice = readFile(predictedFile);
 
 		if (expectedSlice === predictedSlice) {
 			console.log("exact match");

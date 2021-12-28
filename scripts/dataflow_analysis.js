@@ -60,6 +60,10 @@
         return makeJsonTuple("invoke", name);
     }
 
+    const ENTER = function (name) {
+        return makeJsonTuple("enter", name);
+    }
+
     const addToHistory = function (lineNumber) {
         if (history.at(-1) != lineNumber) {
             history.push(lineNumber);
@@ -75,6 +79,27 @@
         }
     }
 
+    /**
+     * There is now callback in Jalangi2 for reaching a certain line. As a remedy
+     * this function is called on every other callback to check whether the slicing
+     * criterion is reached.
+     * 
+     * Reaching the slicing criterion requires entering the function and its activation
+     * frame. Thus (enter, activationFrameId) is added to gen(s)
+     */
+    const slicingCriterionCallback = function (lineNumber) {
+        if (lineNumber === slicingCriterion) {
+            const frameId = frameIdFromName('this'); // activation frame id of the slicing criterion
+
+            // update the gen-set
+            if (!gen[lineNumber]) {
+                // gen(s) does not exist yet
+                gen[lineNumber] = new Set();
+            } // now, gen(s) exists
+            gen[lineNumber].add(ENTER(frameId));
+        }
+    }
+
     const simpleAnalysis = function () {
         let line = undefined;
         let stack = [...history];
@@ -82,7 +107,7 @@
         while (stack.length > 0 && line !== slicingCriterion) {
             line = stack.pop();
         }
-        keepLines.add(line);
+        keepLines.add(slicingCriterion);
         RqEntry = {}; RqEntry[slicingCriterion] = gen[slicingCriterion];
         RqExit = {}; RqExit[slicingCriterion] = new Set();
         while (stack.length > 0) {
@@ -132,6 +157,7 @@
             const frameId = frameIdFromName(name);
             const varId = composeVarId(frameId, name);
             addToHistory(lineNumber);
+            slicingCriterionCallback(lineNumber);
 
             // update the kill-set
             if (!kill[lineNumber]) {
@@ -153,6 +179,7 @@
             const frameId = frameIdFromName(name);
             const varId = composeVarId(frameId, name);
             addToHistory(lineNumber);
+            slicingCriterionCallback(lineNumber);
 
             // update the gen-set
             if (!gen[lineNumber]) {
@@ -174,6 +201,7 @@
             const frameId = frameIdFromName(name);
             const varId = composeVarId(frameId, name);
             addToHistory(lineNumber);
+            slicingCriterionCallback(lineNumber);
 
             // update the gen-set
             if (!gen[lineNumber]) {
@@ -185,10 +213,11 @@
 
         literal: function (iid, val, hasGetterSetter) {
             const lineNumber = singleLineNumberFromIid(iid);
+            addToHistory(lineNumber);
+            slicingCriterionCallback(lineNumber);
 
             if (typeof val === "object" && val !== null) {
                 const shadowId = shadowIdFromValue(val);
-                addToHistory(lineNumber);
 
                 // update the kill-set
                 if (!kill[lineNumber]) {
@@ -199,8 +228,8 @@
 
                 // kill all property-defs
                 for (property in val) {
-                    const fieldID = composeVarId(shadowId, property)
-                    kill[lineNumber].add(P_DEF(fieldID));
+                    const fieldId = composeVarId(shadowId, property)
+                    kill[lineNumber].add(P_DEF(fieldId));
                 }
             }
         },
@@ -210,6 +239,7 @@
             const shadowId = shadowIdFromValue(base);
             const fieldId = composeVarId(shadowId, offset);
             addToHistory(lineNumber);
+            slicingCriterionCallback(lineNumber);
 
             // update the kill-set
             if (!kill[lineNumber]) {
@@ -231,6 +261,7 @@
             const shadowId = shadowIdFromValue(base);
             const fieldId = composeVarId(shadowId, offset);
             addToHistory(lineNumber);
+            slicingCriterionCallback(lineNumber);
 
             // update the gen-set
             if (!gen[lineNumber]) {
@@ -244,6 +275,7 @@
             const lineNumber = singleLineNumberFromIid(iid);
             const shadowId = shadowIdFromValue(f); // shadow object of the function object
             addToHistory(lineNumber);
+            slicingCriterionCallback(lineNumber);
 
             // update the kill-set
             if (!kill[lineNumber]) {
@@ -255,7 +287,8 @@
 
         functionEnter: function (iid, f, dis, args) {
             const lineNumber = singleLineNumberFromIid(iid);
-            const shadowId = shadowIdFromValue(f); // shadow object of the function object
+            const shadowId = shadowIdFromValue(f); // shadow object ID of the function object
+            const frameId = frameIdFromName('this'); // activation frame id of this function's activation frame
             addToHistory(lineNumber);
 
             // update the gen-set
@@ -264,6 +297,19 @@
                 gen[lineNumber] = new Set();
             } // now, gen(s) exists
             gen[lineNumber].add(INVOKE(shadowId));
+
+            // update the kill-set
+            if (!kill[lineNumber]) {
+                // gen(s) does not exist yet
+                kill[lineNumber] = new Set();
+            } // now, gen(s) exists
+            kill[lineNumber].add(ENTER(frameId));
+        },
+
+        _return: function (iid, val) {
+            const lineNumber = singleLineNumberFromIid(iid);
+            addToHistory(lineNumber);
+            slicingCriterionCallback(lineNumber);
         },
 
         /**

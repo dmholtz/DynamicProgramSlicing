@@ -11,20 +11,21 @@
      * 
      * Therefore, the AST is manipulated and then the output is pretty printed.
      * 
-     * @param {String} inputFile specifies the path to the input file, which is trimmed
+     * @param {string} inputFile specifies the path to the input file, which is trimmed
      * @param {Array} keepLines array of line numbers, which are kept in the output file
+     * @param {Array | undefined} list of declared variable names
      * 
      * @see Milestone 1
      */
-    function trim(inputFile, keepLines) {
+    function trim(inputFile, keepLines, missingDeclarations) {
         console.log('Called trimmer.trim: keep lines '
             + keepLines + ' in JavaScript file ' + inputFile);
 
         let ast = parseFile(inputFile);
-        let trimmedAst = manipulateAst(ast, keepLines);
+        let trimmedAst = manipulateAst(ast, keepLines, missingDeclarations);
 
         let outputCode = prettyPrint(trimmedAst);
-        console.log(outputCode)
+        return outputCode;
     }
 
     function parseFile(filePath) {
@@ -38,11 +39,11 @@
         return ast
     }
 
-    function manipulateAst(ast, keepLines) {
+    function manipulateAst(ast, keepLines, missingDeclarations) {
 
         const estraverse = require('estraverse');
 
-        // a node is kept iff there is a line number in keepLines, which lies between the node's start- and end line
+        // a node is kept if there is a line number in keepLines, which lies between the node's start- and end line
         let isNodeContained = function (node) {
             let isContained = false;
             let startLine = node.loc.start.line;
@@ -57,14 +58,36 @@
             return isContained;
         };
 
+        // keep declaration nodes that are part of missing declarations
+        const mightBeMissingDeclaration = function (node) {
+            if (node.type === 'VariableDeclaration') {
+                // assume all declarations to be missingDeclarations until leave-callback is fired with an empty declarations list
+                return true;
+            } else if (node.type === 'VariableDeclarator' && node.id.type === 'Identifier' && missingDeclarations.includes(node.id.name)) {
+                return true;
+            } else if (node.type === 'Identifier' && missingDeclarations.includes(node.name)) {
+                return true;
+            }
+            return false;
+        }
+
+        // true iff the .declarations property of a VariableDeclaration node is an empty list
+        const wasEmptyDecleration = function (node) {
+            return node.type === 'VariableDeclaration' && node.declarations.length < 1
+        }
+
         // define traverse rules
         let visitor = {
             enter: (node, _) => {
-                if (!isNodeContained(node)) {
+                if (!isNodeContained(node) && !mightBeMissingDeclaration(node)) {
                     return estraverse.VisitorOption.Remove;
                 }
             },
-            leave: (node, _) => { } // for completeness / documentation
+            leave: (node, _) => {
+                if (wasEmptyDecleration(node)) {
+                    return estraverse.VisitorOption.Remove;
+                }
+            }
         }
 
         // using estraverse.replace, the AST is traversed and nodes are removed as specified in the visitor object.
