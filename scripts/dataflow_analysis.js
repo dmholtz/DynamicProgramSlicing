@@ -5,17 +5,53 @@
     let gen = {};
     let kill = {};
 
-    // hard-coded, for testing purpose
+    const keepLines = new Set();
+    const branchingPoints = new Set();
+
+    /**
+     * Load init parameters
+     * Object value parameters are loaded from the astInfo file.
+     */
     const slicingCriterion = Number(J$.initParams.slicingCriterion);
+    const astInfoFile = J$.initParams.astInfoFile;
+
+    const fs = require('fs');
+    let astInfo = fs.readFileSync(astInfoFile, { encoding: 'utf-8' });
+    astInfo = JSON.parse(astInfo);
+
+    // maps line numbers of switch-statements to a list of its cases' line numbers
+    const switchCaseMapping = astInfo.switchCaseMapping; //JSON.parse(J$.initParams.switchCaseMapping);
+
+    const invertSwitchCaseMapping = function (switchCaseMapping) {
+        const inverse = {};
+        for (const switchLine in switchCaseMapping) {
+            for (const caseline of switchCaseMapping[switchLine]) {
+                inverse[caseline] = Number(switchLine);
+            }
+        }
+        return inverse;
+    }
+
+    // maps line numbers of case-statements to their parent switch-statements
+    const caseSwitchMapping = invertSwitchCaseMapping(switchCaseMapping);
 
     const lineNumberRangeFromIid = function (iid) {
         locationArray = J$.iids[iid];
         return { startLine: locationArray[0], endLine: locationArray[2] };
     }
 
+    /**
+     * Return the line number for a iid and undefined if the iid does not exist.
+     * @param {*} iid 
+     * @returns 
+     */
     const singleLineNumberFromIid = function (iid) {
         locationArray = J$.iids[iid];
-        return locationArray[0];
+        if (locationArray) {
+            return locationArray[0];
+        } else {
+            return undefined;
+        }
     }
 
     const frameIdFromName = function (name) {
@@ -103,7 +139,6 @@
     const simpleAnalysis = function () {
         let line = undefined;
         let stack = [...history];
-        let keepLines = new Set();
         while (stack.length > 0 && line !== slicingCriterion) {
             line = stack.pop();
         }
@@ -133,7 +168,7 @@
                 }
             }
 
-            if (exists) {
+            if (exists || branchingPoints.has(s)) {
                 // statement (line) is included in the slice
                 const difference = new Set([...RqExit[s]].filter(e => !kill[s].has(e)));
                 RqEntry[s] = new Set([...difference, ...gen[s]]);
@@ -211,26 +246,43 @@
             gen[lineNumber].add(DEF(varId)).add(DEC(varId));
         },
 
+        /**
+         * This callback is called after the creation of a literal. A literal can be a function literal, 
+         * an object literal, an array literal, a number, a string, a boolean, a regular expression, null, 
+         * NaN, Infinity, or undefined.
+         * 
+         * Remark:
+         *  - The post increment operator (i.e. ++) calls this callback with an undefined iid and a value
+         *    of 1.
+         *  - Such callbacks will be ignored.
+         * 
+         * @param {*} iid 
+         * @param {*} val 
+         * @param {*} hasGetterSetter 
+         */
         literal: function (iid, val, hasGetterSetter) {
             const lineNumber = singleLineNumberFromIid(iid);
-            addToHistory(lineNumber);
-            slicingCriterionCallback(lineNumber);
+            if (lineNumber) {
+                addToHistory(lineNumber);
+                slicingCriterionCallback(lineNumber);
 
-            if (typeof val === "object" && val !== null) {
-                const shadowId = shadowIdFromValue(val);
+                if (typeof val === "object" && val !== null) {
+                    const shadowId = shadowIdFromValue(val);
 
-                // update the kill-set
-                if (!kill[lineNumber]) {
-                    // gen(s) does not exist yet
-                    kill[lineNumber] = new Set();
-                } // now, gen(s) exists
-                kill[lineNumber].add(ALLOC(shadowId));
+                    // update the kill-set
+                    if (!kill[lineNumber]) {
+                        // gen(s) does not exist yet
+                        kill[lineNumber] = new Set();
+                    } // now, gen(s) exists
+                    kill[lineNumber].add(ALLOC(shadowId));
 
-                // kill all property-defs
-                for (property in val) {
-                    const fieldId = composeVarId(shadowId, property)
-                    kill[lineNumber].add(P_DEF(fieldId));
+                    // kill all property-defs
+                    for (property in val) {
+                        const fieldId = composeVarId(shadowId, property)
+                        kill[lineNumber].add(P_DEF(fieldId));
+                    }
                 }
+                // constant literals will not affect gen(s) or kill(s)
             }
         },
 
@@ -263,12 +315,15 @@
             addToHistory(lineNumber);
             slicingCriterionCallback(lineNumber);
 
-            // update the gen-set
-            if (!gen[lineNumber]) {
-                // gen(s) does not exist yet
-                gen[lineNumber] = new Set();
-            } // now, gen(s) exists
-            gen[lineNumber].add(P_DEF(fieldId)).add(ALLOC(shadowId));
+            if (typeof base === 'object') {
+                // update the gen-set
+                if (!gen[lineNumber]) {
+                    // gen(s) does not exist yet
+                    gen[lineNumber] = new Set();
+                } // now, gen(s) exists
+                gen[lineNumber].add(P_DEF(fieldId)).add(ALLOC(shadowId));
+            }
+            // getField callbacks on strings will not affect gen(s) or kill(s) as strings are primitives
         },
 
         invokeFunPre: function (iid, f, base, args, isConstructor, isMethod, functionIid, functionSid) {
@@ -310,6 +365,43 @@
             const lineNumber = singleLineNumberFromIid(iid);
             addToHistory(lineNumber);
             slicingCriterionCallback(lineNumber);
+        },
+
+        /**
+         * This callback is called after a condition check before branching. Branching can happen 
+         * in various statements including if-then-else, switch-case, while, for, ||, &&, ?:.
+         * 
+         * Switch-case:
+         * - This callback is only thrown for the 'case' nodes. However, this prevents the analysis
+         *   from tracking data-dependencies of the switch-statement's discriminant node
+         * - As a remedy, the analysis relies on a AST preprocessing which maps SwitchCase-nodes to
+         *   their parent nodes, i.e. SwitchStatement-nodes
+         * 1) If a case node is reached and the test condition is false, no branchingPoint is set.
+         * 2) If a case node is reached and the test condition is true, then both the line of the
+         *    SwitchCase-node and the line of the SwitchStatement node are set as branching points.
+         * - As a result, the SwitchStatement discriminant node will be considered if at least one of
+         *   the cases is true. Otherwise, the entire SwitchStatement node will be excluded.
+         * - All the mappings are based on line numbers of the discriminant node and the 'case' nodes.
+         * @param {*} iid 
+         * @param {*} val 
+         */
+        conditional: function (iid, val) {
+            const lineNumber = singleLineNumberFromIid(iid);
+            addToHistory(lineNumber);
+            slicingCriterionCallback(lineNumber);
+
+            if (caseSwitchMapping && caseSwitchMapping[lineNumber] !== undefined) {
+                const caseLine = lineNumber; // just an alias for readability
+                if (val) {
+                    // test-condition is true, consequent node will be executed
+                    const switchLine = Number(caseSwitchMapping[caseLine]);
+                    branchingPoints.add(switchLine);
+                    branchingPoints.add(caseLine);
+                }
+            } else {
+                // any other branching construct (e.g. if, while, for, ?:, ...)
+                branchingPoints.add(lineNumber);
+            }
         },
 
         /**
