@@ -29,6 +29,14 @@
         const instrumentedCodeFile = inFile.replace(".js", "_jalangi_.js");
         fs.writeFileSync(instrumentedCodeFile, instrumentResult.code);
 
+        // Run the AST preprocessing
+        const astPreprocessor = require('./ast_preprocessor.js');
+        const switchCaseMapping = astPreprocessor.process(inFile);
+        const astInfo = { switchCaseMapping: switchCaseMapping };
+
+        const astInfoFile = inFile.replace('.js', '_astInfo_.json');
+        fs.writeFileSync(astInfoFile, JSON.stringify(astInfo), { encoding: 'utf-8' });
+
         // Analyze the instrumented code using Jalangi
         const { analyze } = require('jalangi2/src/js/utils/api.js');
         const sMemoryPath = require.resolve('jalangi2/src/js/runtime/SMemory.js');
@@ -40,13 +48,15 @@
         const analyisOutFile = inFile.replace(".js", "_analysis_out_.json");
         const initParams = {
             slicingCriterion: lineNb,
-            analyisOutFile: analyisOutFile
+            analyisOutFile: analyisOutFile,
+            astInfoFile: astInfoFile
         }
         const analysisPromise = analyze(instrumentedCodeFile, analyses, initParams);
 
         // Load the analysis result
         successfulResolve = function (_) {
             console.log(`Analysis ${analysisFile} has run successfully.`)
+            //console.log(_) // debugging
 
             let analysisResult = fs.readFileSync(analyisOutFile, { encoding: 'utf-8' });
             analysisResult = JSON.parse(analysisResult);
@@ -58,7 +68,6 @@
                 analysisResult.missingDeclarations);
 
             fs.writeFileSync(outFile, outputCode, { encoding: 'utf-8' });
-            // console.log(_) // debugging
         }
 
         analysisPromise.then(successfulResolve, value => console.log("failed", value));
