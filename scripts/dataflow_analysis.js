@@ -5,6 +5,9 @@
     let gen = {};
     let kill = {};
 
+    const keepLines = new Set();
+    const branchingPoints = new Set();
+
     // hard-coded, for testing purpose
     const slicingCriterion = Number(J$.initParams.slicingCriterion);
 
@@ -13,9 +16,18 @@
         return { startLine: locationArray[0], endLine: locationArray[2] };
     }
 
+    /**
+     * Return the line number for a iid and undefined if the iid does not exist.
+     * @param {*} iid 
+     * @returns 
+     */
     const singleLineNumberFromIid = function (iid) {
         locationArray = J$.iids[iid];
-        return locationArray[0];
+        if (locationArray) {
+            return locationArray[0];
+        } else {
+            return undefined;
+        }
     }
 
     const frameIdFromName = function (name) {
@@ -103,7 +115,6 @@
     const simpleAnalysis = function () {
         let line = undefined;
         let stack = [...history];
-        let keepLines = new Set();
         while (stack.length > 0 && line !== slicingCriterion) {
             line = stack.pop();
         }
@@ -133,7 +144,7 @@
                 }
             }
 
-            if (exists) {
+            if (exists || branchingPoints.has(s)) {
                 // statement (line) is included in the slice
                 const difference = new Set([...RqExit[s]].filter(e => !kill[s].has(e)));
                 RqEntry[s] = new Set([...difference, ...gen[s]]);
@@ -211,26 +222,43 @@
             gen[lineNumber].add(DEF(varId)).add(DEC(varId));
         },
 
+        /**
+         * This callback is called after the creation of a literal. A literal can be a function literal, 
+         * an object literal, an array literal, a number, a string, a boolean, a regular expression, null, 
+         * NaN, Infinity, or undefined.
+         * 
+         * Remark:
+         *  - The post increment operator (i.e. ++) calls this callback with an undefined iid and a value
+         *    of 1.
+         *  - Such callbacks will be ignored.
+         * 
+         * @param {*} iid 
+         * @param {*} val 
+         * @param {*} hasGetterSetter 
+         */
         literal: function (iid, val, hasGetterSetter) {
             const lineNumber = singleLineNumberFromIid(iid);
-            addToHistory(lineNumber);
-            slicingCriterionCallback(lineNumber);
+            if (lineNumber) {
+                addToHistory(lineNumber);
+                slicingCriterionCallback(lineNumber);
 
-            if (typeof val === "object" && val !== null) {
-                const shadowId = shadowIdFromValue(val);
+                if (typeof val === "object" && val !== null) {
+                    const shadowId = shadowIdFromValue(val);
 
-                // update the kill-set
-                if (!kill[lineNumber]) {
-                    // gen(s) does not exist yet
-                    kill[lineNumber] = new Set();
-                } // now, gen(s) exists
-                kill[lineNumber].add(ALLOC(shadowId));
+                    // update the kill-set
+                    if (!kill[lineNumber]) {
+                        // gen(s) does not exist yet
+                        kill[lineNumber] = new Set();
+                    } // now, gen(s) exists
+                    kill[lineNumber].add(ALLOC(shadowId));
 
-                // kill all property-defs
-                for (property in val) {
-                    const fieldId = composeVarId(shadowId, property)
-                    kill[lineNumber].add(P_DEF(fieldId));
+                    // kill all property-defs
+                    for (property in val) {
+                        const fieldId = composeVarId(shadowId, property)
+                        kill[lineNumber].add(P_DEF(fieldId));
+                    }
                 }
+                // constant literals will not affect gen(s) or kill(s)
             }
         },
 
@@ -263,12 +291,15 @@
             addToHistory(lineNumber);
             slicingCriterionCallback(lineNumber);
 
-            // update the gen-set
-            if (!gen[lineNumber]) {
-                // gen(s) does not exist yet
-                gen[lineNumber] = new Set();
-            } // now, gen(s) exists
-            gen[lineNumber].add(P_DEF(fieldId)).add(ALLOC(shadowId));
+            if (typeof base === 'object') {
+                // update the gen-set
+                if (!gen[lineNumber]) {
+                    // gen(s) does not exist yet
+                    gen[lineNumber] = new Set();
+                } // now, gen(s) exists
+                gen[lineNumber].add(P_DEF(fieldId)).add(ALLOC(shadowId));
+            }
+            // getField callbacks on strings will not affect gen(s) or kill(s) as strings are primitives
         },
 
         invokeFunPre: function (iid, f, base, args, isConstructor, isMethod, functionIid, functionSid) {
@@ -310,6 +341,14 @@
             const lineNumber = singleLineNumberFromIid(iid);
             addToHistory(lineNumber);
             slicingCriterionCallback(lineNumber);
+        },
+
+        conditional: function (iid, val) {
+            const lineNumber = singleLineNumberFromIid(iid);
+            addToHistory(lineNumber);
+            slicingCriterionCallback(lineNumber);
+
+            branchingPoints.add(lineNumber);
         },
 
         /**
