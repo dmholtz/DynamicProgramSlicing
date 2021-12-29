@@ -19,7 +19,7 @@
      */
     function trim(inputFile, keepLines, missingDeclarations) {
         console.log('Called trimmer.trim: keep lines '
-            + keepLines + ' in JavaScript file ' + inputFile);
+            + keepLines + ' missingDeclarations: ' + missingDeclarations + ' in JavaScript file ' + inputFile);
 
         let ast = parseFile(inputFile);
         let trimmedAst = manipulateAst(ast, keepLines, missingDeclarations);
