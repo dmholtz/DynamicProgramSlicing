@@ -14,9 +14,24 @@
 		return fs.readFileSync(fileName, 'utf8');
 	}
 
+	function prettyPrint(code, file) {
+		const acorn = require('acorn');   // AST parsing
+		const acornOptions = { locations: true, ecmaVersion: 5 } // 'locations' provides line numbers, ecmaVersion according to project requirements
+
+		const ast = acorn.parse(code, acornOptions);
+
+		const escodegen = require("escodegen");
+		const prettyCode = escodegen.generate(ast);
+
+		const fs = require('fs');
+		fs.writeFileSync(file, prettyCode, { encoding: 'utf-8' });
+		return prettyCode;
+	}
+
 	function compare(originalFile, predictedFile) {
-		expectedSlice = readFile(originalFile);
-		predictedSlice = readFile(predictedFile);
+		let expectedSlice = readFile(originalFile);
+		expectedSlice = prettyPrint(expectedSlice, originalFile);
+		const predictedSlice = readFile(predictedFile);
 
 		if (expectedSlice === predictedSlice) {
 			console.log("exact match");
