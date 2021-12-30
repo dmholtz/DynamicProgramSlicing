@@ -58,17 +58,18 @@
             return isContained;
         };
 
-        // keep declaration nodes that are part of missing declarations
-        const mightBeMissingDeclaration = function (node) {
-            if (node.type === 'VariableDeclaration') {
-                // assume all declarations to be missingDeclarations until leave-callback is fired with an empty declarations list
-                return true;
-            } else if (node.type === 'VariableDeclarator' && node.id.type === 'Identifier' && missingDeclarations.includes(node.id.name)) {
-                return true;
-            } else if (node.type === 'Identifier' && missingDeclarations.includes(node.name)) {
-                return true;
-            }
-            return false;
+        const isVariableDeclaration = function (node) {
+            return node.type === 'VariableDeclaration';
+        }
+
+        /**
+         * A VariableDeclarator node is a missing declarator iff its id-childnode is of the type
+         * Identifier and has a name, which is included in the list of missing declarations.
+         */
+        const isMissingDeclarator = function (node) {
+            return node.type === 'VariableDeclarator'
+                && node.id.type === 'Identifier'
+                && missingDeclarations.includes(node.id.name)
         }
 
         // true iff the .declarations property of a VariableDeclaration node is an empty list
@@ -78,13 +79,22 @@
 
         // define traverse rules
         let visitor = {
-            enter: (node, _) => {
-                if (!isNodeContained(node) && !mightBeMissingDeclaration(node)) {
-                    return estraverse.VisitorOption.Remove;
+            enter: (node, parent) => {
+                if (isNodeContained(node)) {
+                    return;
+                } else if (isVariableDeclaration(node)) {
+                    // at entry, all VariableDeclaration parent nodes are kept and their children are traversed
+                    return;
+                } else if (isMissingDeclarator(node)) {
+                    // missing declarator nodes, as well as all their children are kept and therefore skipped
+                    return estraverse.VisitorOption.Skip;
                 }
+                // all the remaining nodes are deleted
+                return estraverse.VisitorOption.Remove;
             },
             leave: (node, _) => {
                 if (wasEmptyDecleration(node)) {
+                    // at exit, all (empty) VariableDeclaration nodes without declarators are deleted
                     return estraverse.VisitorOption.Remove;
                 }
             }
