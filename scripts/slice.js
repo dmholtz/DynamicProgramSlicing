@@ -31,8 +31,8 @@
 
         // Run the AST preprocessing
         const astPreprocessor = require('./ast_preprocessor.js');
-        const switchCaseMapping = astPreprocessor.process(inFile);
-        const astInfo = { switchCaseMapping: switchCaseMapping };
+        const astInfo = astPreprocessor.process(inFile);
+        //const astInfo = { switchCaseMapping: switchCaseMapping };
 
         const astInfoFile = inFile.replace('.js', '_astInfo_.json');
         fs.writeFileSync(astInfoFile, JSON.stringify(astInfo), { encoding: 'utf-8' });
