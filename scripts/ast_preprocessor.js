@@ -13,10 +13,12 @@
 
         const switchCaseMapping = gatherSwitchStatements(ast);
         const controlFlowDependencies = getControlFlowDependencies(ast);
+        const breakContinueTriggers = getBreakContinueTriggers(ast, controlFlowDependencies);
 
         const astInfo = {
             switchCaseMapping: switchCaseMapping,
-            controlFlowDependencies: controlFlowDependencies
+            controlFlowDependencies: controlFlowDependencies,
+            breakContinueTriggers: breakContinueTriggers
         };
         return astInfo;
     }
@@ -182,6 +184,49 @@
             }
         }
         return controlFlowDependencies;
+    }
+
+    function getBreakContinueTriggers(ast, controlFlowDependencies) {
+
+        const estraverse = require('estraverse');
+
+        const firstLineOfNode = function (node) {
+            return node.loc.start.line;;
+        }
+
+        const breakContinueTriggers = {};
+
+        const addTrigger = function (lineNumber) {
+            for (trigger in controlFlowDependencies) {
+                const dependentLines = controlFlowDependencies[trigger];
+                if (dependentLines.includes(lineNumber)) {
+                    if (!breakContinueTriggers[trigger]) {
+                        breakContinueTriggers[trigger] = [lineNumber];
+                    }
+                    else {
+                        breakContinueTriggers[trigger].push(lineNumber);
+                    }
+                }
+            }
+        }
+
+        // define traverse rules
+        let visitor = {
+            enter: (node, _) => {
+                const lineNumber = firstLineOfNode(node);
+                if (node.type === 'BreakStatement' || node.type === 'ContinueStatement') {
+                    addTrigger(lineNumber);
+                }
+
+            },
+            leave: (node, _) => {
+            }
+        }
+
+        // using estraverse.replace, the AST is traversed and nodes are removed as specified in the visitor object.
+        estraverse.traverse(ast, visitor);
+
+        return breakContinueTriggers;
     }
 
     exports.process = process;
