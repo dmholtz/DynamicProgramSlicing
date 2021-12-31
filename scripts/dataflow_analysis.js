@@ -23,6 +23,8 @@
     const switchCaseMapping = astInfo.switchCaseMapping;
     // maps line numbers of branching points to a list of their control flow dependent successors
     const controlFlowDependencies = astInfo.controlFlowDependencies;
+    // maps line numbers of branching points to a list of break or continue statements
+    const breakContinueTriggers = astInfo.breakContinueTriggers;
 
     const invertSwitchCaseMapping = function (switchCaseMapping) {
         const inverse = {};
@@ -410,10 +412,22 @@
                     const switchLine = Number(caseSwitchMapping[caseLine]);
                     branchingPoints.add(switchLine);
                     branchingPoints.add(caseLine);
+                    if (breakContinueTriggers[caseLine]) {
+                        const breakContinueLines = breakContinueTriggers[lineNumber]
+                        for (let bc of breakContinueLines) {
+                            keepLines.add(bc);
+                        }
+                    }
                 }
             } else {
                 // any other branching construct (e.g. if, while, for, ?:, ...)
                 branchingPoints.add(lineNumber);
+                if (breakContinueTriggers[lineNumber]) {
+                    const breakContinueLines = breakContinueTriggers[lineNumber];
+                    for (let bc of breakContinueLines) {
+                        keepLines.add(bc);
+                    }
+                }
             }
         },
 
