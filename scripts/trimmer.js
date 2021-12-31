@@ -73,7 +73,7 @@
         }
 
         const isTestOfSwitchCase = function (node, parent) {
-            return node === parent.test;
+            return node === parent.test && parent.type === 'SwitchCase';
         }
 
         // true iff the .declarations property of a VariableDeclaration node is an empty list
