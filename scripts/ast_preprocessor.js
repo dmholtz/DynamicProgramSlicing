@@ -146,7 +146,6 @@
 
                     }
                 }
-                console.log(dependentNodeStack);
             },
             leave: (node, _) => {
                 if (node.type === 'IfStatement'
