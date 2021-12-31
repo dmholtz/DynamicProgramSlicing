@@ -20,7 +20,9 @@
     astInfo = JSON.parse(astInfo);
 
     // maps line numbers of switch-statements to a list of its cases' line numbers
-    const switchCaseMapping = astInfo.switchCaseMapping; //JSON.parse(J$.initParams.switchCaseMapping);
+    const switchCaseMapping = astInfo.switchCaseMapping;
+    // maps line numbers of branching points to a list of their control flow dependent successors
+    const controlFlowDependencies = astInfo.controlFlowDependencies;
 
     const invertSwitchCaseMapping = function (switchCaseMapping) {
         const inverse = {};
@@ -168,7 +170,18 @@
                 }
             }
 
-            if (exists || branchingPoints.has(s)) {
+            let isRelevantBranchingPoint = false;
+            const controlFlowDependentNodes = controlFlowDependencies[s];
+            if (controlFlowDependentNodes) {
+                for (let node of controlFlowDependentNodes) {
+                    if (keepLines.has(node)) {
+                        isRelevantBranchingPoint = true;
+                        break;
+                    }
+                }
+            }
+
+            if (exists || isRelevantBranchingPoint) {
                 // statement (line) is included in the slice
                 const difference = new Set([...RqExit[s]].filter(e => !kill[s].has(e)));
                 RqEntry[s] = new Set([...difference, ...gen[s]]);

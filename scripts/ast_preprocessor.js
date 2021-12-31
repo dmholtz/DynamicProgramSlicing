@@ -75,17 +75,6 @@
 
         const estraverse = require('estraverse');
 
-        // list of control flow dependencies, where each dependency is denoted with a list 
-
-        /**
-         * List of control flow dependencies. Each dependency is denoted with a list [a,b],
-         * where b is control flow dependent upon a.
-         */
-        let controlFlowDependencies = new Set();
-        let dependentNodeStack = [];
-
-        let expectedBreakStatements = 0;
-
         const firstLineOfNode = function (node) {
             return node.loc.start.line;;
         }
@@ -94,16 +83,34 @@
             return node.loc.end.line;;
         }
 
+        /**
+         * List of control flow dependencies. Each dependency is denoted with a list [a,b],
+         * where b is control flow dependent upon a.
+         */
+        let controlFlowDependencies = new Set();
+
+        /**
+         * 
+         */
+        let dependentNodeStack = [];
+
+        let expectedBreakStatements = 0;
+
         // define traverse rules
         let visitor = {
             enter: (node, _) => {
                 const lineNumber = firstLineOfNode(node);
-                if (dependentNodeStack.at(-1) && !dependentNodeStack.includes(lineNumber)) {
-                    //if (dependentNodeStack.at(-1) && dependentNodeStack.at(-1) !== lineNumber) {
-                    const dependentLineNumber = dependentNodeStack.at(-1);
-                    const controlFlowDependency = {}; controlFlowDependency[dependentLineNumber] = lineNumber;
-                    controlFlowDependencies.add(JSON.stringify(controlFlowDependency));
+
+                if (dependentNodeStack.at(-1)) {
+                    let topElement = Array.isArray(dependentNodeStack.at(-1)) ? dependentNodeStack.at(-1) : [dependentNodeStack.at(-1)];
+                    if (!topElement.includes(lineNumber) && node.type !== 'SwitchCase') {
+                        for (let dependentLineNumber of topElement) {
+                            const controlFlowDependency = {}; controlFlowDependency[dependentLineNumber] = lineNumber;
+                            controlFlowDependencies.add(JSON.stringify(controlFlowDependency));
+                        }
+                    }
                 }
+
                 if (node.type === 'IfStatement'
                     || node.type === 'ForStatement'
                     || node.type === 'WhileStatement'
@@ -112,13 +119,21 @@
                 } else if (node.type === 'DoWhileStatement') {
                     dependentNodeStack.push(lastLineOfNode(node))
                 } else if (node.type === 'SwitchCase') {
-                    dependentNodeStack.push(lineNumber);
-                    expectedBreakStatements++;
-                } else if (node.type === 'BreakStatement') {
-                    while (expectedBreakStatements > 0) {
-                        dependentNodeStack.pop();
-                        expectedBreakStatements--;
+                    if (!Array.isArray(dependentNodeStack.at(-1))) {
+                        dependentNodeStack.push([lineNumber]);
                     }
+                    else {
+                        dependentNodeStack.at(-1).push(lineNumber);
+                    }
+                    let topElement = Array.isArray(dependentNodeStack.at(-2)) ? dependentNodeStack.at(-2) : [dependentNodeStack.at(-2)];
+                    if (!topElement.includes(lineNumber)) {
+                        for (let dependentLineNumber of topElement) {
+                            const controlFlowDependency = {}; controlFlowDependency[dependentLineNumber] = lineNumber;
+                            controlFlowDependencies.add(JSON.stringify(controlFlowDependency));
+                        }
+                    }
+                } else if (node.type === 'BreakStatement' && Array.isArray(dependentNodeStack.at(-1))) {
+                    dependentNodeStack.pop();
                 }
 
                 if (expectedBreakStatements > 1 && node.type !== 'SwitchCase') {
@@ -139,9 +154,8 @@
                     || node.type === 'DoWhileStatement') {
                     dependentNodeStack.pop();
                 } else if (node.type === 'SwitchStatement') {
-                    while (expectedBreakStatements > 0) {
+                    if (Array.isArray(dependentNodeStack.at(-1))) {
                         dependentNodeStack.pop();
-                        expectedBreakStatements--;
                     }
                     dependentNodeStack.pop(); // SwitchStatement
                 } else if (node.type === 'SwitchCase') {
@@ -153,9 +167,19 @@
         // using estraverse.replace, the AST is traversed and nodes are removed as specified in the visitor object.
         estraverse.traverse(ast, visitor);
 
-        controlFlowDependencies = [...controlFlowDependencies];
-        for (let i in controlFlowDependencies) {
-            controlFlowDependencies[i] = JSON.parse(controlFlowDependencies[i]);
+        const copy = [...controlFlowDependencies];
+        controlFlowDependencies = {};
+
+        for (let jsonDependency of copy) {
+            const dependency = JSON.parse(jsonDependency);
+            for (let dependent in dependency) {
+                if (!controlFlowDependencies[dependent]) {
+                    controlFlowDependencies[dependent] = [dependency[dependent]]
+                }
+                else {
+                    controlFlowDependencies[dependent].push(dependency[dependent])
+                }
+            }
         }
         return controlFlowDependencies;
     }
