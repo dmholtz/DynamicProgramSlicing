@@ -72,6 +72,10 @@
                 && missingDeclarations.includes(node.id.name)
         }
 
+        const isTestOfSwitchCase = function (node, parent) {
+            return node === parent.test;
+        }
+
         // true iff the .declarations property of a VariableDeclaration node is an empty list
         const wasEmptyDecleration = function (node) {
             return node.type === 'VariableDeclaration' && node.declarations.length < 1
@@ -87,6 +91,9 @@
                     return;
                 } else if (isMissingDeclarator(node)) {
                     // missing declarator nodes, as well as all their children are kept and therefore skipped
+                    return estraverse.VisitorOption.Skip;
+                } else if (isTestOfSwitchCase(node, parent)) {
+                    // ensures that test nodes of SwitchCase are not missed
                     return estraverse.VisitorOption.Skip;
                 }
                 // all the remaining nodes are deleted
