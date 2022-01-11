@@ -10,3 +10,5 @@ function sliceMe() {
     return x;
 }
 sliceMe();
+
+// Test control-flow dependency tracking

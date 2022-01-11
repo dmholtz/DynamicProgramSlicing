@@ -6,6 +6,28 @@
 
 (function clone(exports) {
 
+    /**
+     * Returns the first line number of an AST node.
+     * Top-level function for AST processing.
+     */
+    const firstLineOfNode = function (node) {
+        return node.loc.start.line;;
+    }
+
+    /**
+     * Returns the last line number of an AST node.
+     * Top-level function for AST processing.
+     */
+    const lastLineOfNode = function (node) {
+        return node.loc.end.line;;
+    }
+
+    /**
+     * Reads a source file and processes the AST of the contained JS program.
+     * This is the entry point of this node module.
+     * @param {} inputFile path of the source to be analyzed
+     * @returns astInfo 
+     */
     function process(inputFile) {
         console.log('Called process for JavaScript file ' + inputFile);
 
@@ -15,6 +37,7 @@
         const controlFlowDependencies = getControlFlowDependencies(ast);
         const breakContinueTriggers = getBreakContinueTriggers(ast, controlFlowDependencies);
 
+        // assemble the results into a single object
         const astInfo = {
             switchCaseMapping: switchCaseMapping,
             controlFlowDependencies: controlFlowDependencies,
@@ -25,15 +48,25 @@
 
     function parseFile(filePath) {
         const acorn = require('acorn');   // AST parsing
-        let acornOptions = { locations: true, ecmaVersion: 5 } // 'locations' provides line numbers, ecmaVersion according to project requirements
+        const acornOptions = { locations: true, ecmaVersion: 5 } // 'locations' provides line numbers, ecmaVersion according to project requirements
 
-        const fs = require('fs');          // filesystem
-        let source = fs.readFileSync(filePath).toString();
+        const fs = require('fs');
+        const source = fs.readFileSync(filePath).toString();
 
-        let ast = acorn.parse(source, acornOptions);
+        const ast = acorn.parse(source, acornOptions);
         return ast
     }
 
+    /**
+     * Traverses the AST and generates a mapping from SwitchStatement to a
+     * list of its SwitchCaseStatements
+     * 
+     * Both SwitchStatement and SwitchCaseStatement are indexed by their line
+     * numbers.
+     * 
+     * @param {object} ast 
+     * @returns 
+     */
     function gatherSwitchStatements(ast) {
 
         const estraverse = require('estraverse');
@@ -41,10 +74,6 @@
         // maps line numbers of switch-statements to a list of its cases' line numbers
         const switchCaseMapping = {};
         let parentSwitchStatementNodes = [];
-
-        const firstLineOfNode = function (node) {
-            return node.loc.start.line;;
-        }
 
         // define traverse rules
         let visitor = {
@@ -76,14 +105,6 @@
     function getControlFlowDependencies(ast) {
 
         const estraverse = require('estraverse');
-
-        const firstLineOfNode = function (node) {
-            return node.loc.start.line;;
-        }
-
-        const lastLineOfNode = function (node) {
-            return node.loc.end.line;;
-        }
 
         /**
          * List of control flow dependencies. Each dependency is denoted with a list [a,b],
@@ -189,10 +210,6 @@
     function getBreakContinueTriggers(ast, controlFlowDependencies) {
 
         const estraverse = require('estraverse');
-
-        const firstLineOfNode = function (node) {
-            return node.loc.start.line;;
-        }
 
         const breakContinueTriggers = {};
 
