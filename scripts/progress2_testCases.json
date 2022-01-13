@@ -1,0 +1,6 @@
+[
+    {"inFile": "../testcases/progress2/a1_in.js", "outFile": "../testcases/progress2/a1_predicted_out.js", "lineNb":8, "goldFile": "../testcases/progress2/a1_out.js"},
+    {"inFile": "../testcases/progress2/e1_in.js", "outFile": "../testcases/progress2/e1_predicted_out.js", "lineNb":8, "goldFile": "../testcases/progress2/e1_out.js"},
+    {"inFile": "../testcases/progress2/e2_in.js", "outFile": "../testcases/progress2/e2_predicted_out.js", "lineNb":8, "goldFile": "../testcases/progress2/e2_out.js"}
+]
+    
