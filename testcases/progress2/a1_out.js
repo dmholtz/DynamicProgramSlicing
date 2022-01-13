@@ -5,5 +5,4 @@ function sliceMe() {
     z = y + y;
     return z;
 }
-
 sliceMe();

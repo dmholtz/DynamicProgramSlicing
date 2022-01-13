@@ -7,5 +7,4 @@ function sliceMe() {
     z = y;
     return z;
 }
-
-sliceMe()
+sliceMe();
