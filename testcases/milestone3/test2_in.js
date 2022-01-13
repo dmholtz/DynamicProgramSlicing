@@ -10,3 +10,5 @@ function sliceMe() {
     return x; // slicing criterion
 }
 sliceMe();
+
+// Test tenary ?: operator
