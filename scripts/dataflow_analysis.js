@@ -376,10 +376,52 @@
             kill[lineNumber].add(ENTER(frameId));
         },
 
+        /**
+         * This callback is called before a value is returned from a function using the return keyword.
+         * 
+         * The line number is added to the history and the slicingCriterion callback is executed.
+         * Moreover, implicit object property uses are detected and handeled.
+         */
         _return: function (iid, val) {
             const lineNumber = singleLineNumberFromIid(iid);
             addToHistory(lineNumber);
             slicingCriterionCallback(lineNumber);
+
+            // Ensure, that a gen(s) exists
+            if (!gen[lineNumber]) {
+                // gen(s) does not exist yet
+                gen[lineNumber] = new Set();
+            } // now, gen(s) exists
+
+            /**
+             * If the value of the returned object is a non-primitive (i.e. an object), 
+             * then all of its properties are implicitly used. Moreover, this holds
+             * recursively: If the object is a composed object (e.g. a list or a nested
+             * object), all list values or nested object properties are implicitly used.
+             * 
+             * In that cases, the the implicit P-DEF tuples (i.e. property definitions)
+             * are added to the gen(s) set.
+             * 
+             * @param {*} value value whose properties might implicitly be used
+             */
+            const handleImplicitPropertyUsesRecursively = function (value) {
+                if (typeof value === 'object' && val !== null) {
+                    // first, add ALLOC tuple for object
+                    const shadowId = shadowIdFromValue(value);
+                    gen[lineNumber].add(ALLOC(shadowId));
+
+                    // for-in loops over all enumerable properties -> works for both arrays and objects
+                    for (let property in value) {
+                        const fieldId = composeVarId(shadowId, property);
+                        gen[lineNumber].add(P_DEF(fieldId)).add(ALLOC(shadowId));
+
+                        const childValue = value[property];
+                        handleImplicitPropertyUsesRecursively(childValue);
+                    }
+                }
+            }
+
+            handleImplicitPropertyUsesRecursively(val);
         },
 
         /**
