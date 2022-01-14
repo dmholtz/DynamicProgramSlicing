@@ -16,7 +16,7 @@ function readTestCaseDescription(testCaseFile) {
 function run_slice(testCase) {
 
     const trimmer = require('./trimmer.js');
-    const outputCode = trimmer.trim(testCase["inputFile"], testCase["lines"]);
+    const outputCode = trimmer.trim(testCase["inputFile"], testCase["lines"], []);
     console.log(outputCode);
 }
 
