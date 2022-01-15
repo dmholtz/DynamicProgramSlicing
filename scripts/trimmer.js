@@ -4,6 +4,8 @@
  * (C) by dmholtz
  */
 
+const { parseExpressionAt } = require('acorn');
+
 (function clone(exports) {
 
     /**
@@ -69,16 +71,22 @@
         const isMissingDeclarator = function (node) {
             return node.type === 'VariableDeclarator'
                 && node.id.type === 'Identifier'
-                && missingDeclarations.includes(node.id.name)
+                && missingDeclarations.includes(node.id.name);
         }
 
         const isTestOfSwitchCase = function (node, parent) {
             return node === parent.test && parent.type === 'SwitchCase';
         }
 
+        const isBlockStatementOfTry = function (node, parent) {
+            return node.type === 'BlockStatement'
+                && node === parent.block
+                && parent.type === 'TryStatement';
+        }
+
         // true iff the .declarations property of a VariableDeclaration node is an empty list
-        const wasEmptyDecleration = function (node) {
-            return node.type === 'VariableDeclaration' && node.declarations.length < 1
+        const wasEmptyVariableDecleration = function (node) {
+            return node.type === 'VariableDeclaration' && node.declarations.length < 1;
         }
 
         // define traverse rules
@@ -95,12 +103,15 @@
                 } else if (isTestOfSwitchCase(node, parent)) {
                     // ensures that test nodes of SwitchCase are not missed
                     return estraverse.VisitorOption.Skip;
+                } else if (isBlockStatementOfTry(node, parent)) {
+                    // A TryStatement's block node is included iff the TryStatement node is included
+                    return;
                 }
                 // all the remaining nodes are deleted
                 return estraverse.VisitorOption.Remove;
             },
             leave: (node, _) => {
-                if (wasEmptyDecleration(node)) {
+                if (wasEmptyVariableDecleration(node)) {
                     // at exit, all (empty) VariableDeclaration nodes without declarators are deleted
                     return estraverse.VisitorOption.Remove;
                 }

@@ -36,12 +36,14 @@
         const switchCaseMapping = gatherSwitchStatements(ast);
         const controlFlowDependencies = getControlFlowDependencies(ast);
         const breakContinueTriggers = getBreakContinueTriggers(ast, controlFlowDependencies);
+        const throwCatchMapping = getThrowCatchMapping(ast);
 
         // assemble the results into a single object
         const astInfo = {
             switchCaseMapping: switchCaseMapping,
             controlFlowDependencies: controlFlowDependencies,
-            breakContinueTriggers: breakContinueTriggers
+            breakContinueTriggers: breakContinueTriggers,
+            throwCatchMapping: throwCatchMapping,
         };
         return astInfo;
     }
@@ -244,6 +246,50 @@
         estraverse.traverse(ast, visitor);
 
         return breakContinueTriggers;
+    }
+
+    function getThrowCatchMapping(ast) {
+
+        const estraverse = require('estraverse');
+
+        const throwCatchMapping = {};
+        const stack = []; // contains objects of the form { catchStart: Number, catchEnd: Number, throwLines: [] }
+
+        // define traverse rules
+        let visitor = {
+            enter: (node, _) => {
+                if (node.type === 'TryStatement') {
+                    stack.push({ catchStart: undefined, catchEnd: undefined, throwLines: [] });
+                } else if (node.type === 'CatchClause') {
+                    const mapping = stack.at(-1);
+                    mapping.catchStart = firstLineOfNode(node);
+                    mapping.catchEnd = lastLineOfNode(node);
+                } else if (node.type === 'ThrowStatement') {
+                    const mapping = stack.at(-1);
+                    mapping.throwLines.push(firstLineOfNode(node));
+                }
+            },
+            leave: (node, _) => {
+                if (node.type === 'TryStatement') {
+                    // remove the mapping from the stack
+                    const mapping = stack.pop();
+                    // invert the mapping in case a catch block exists
+                    if (mapping.catchStart !== undefined) {
+                        for (let throwLine of mapping.throwLines) {
+                            throwCatchMapping[throwLine] = {
+                                catchStart: mapping.catchStart,
+                                catchEnd: mapping.catchEnd
+                            };
+                        }
+                    }
+                }
+            }
+        }
+
+        // using estraverse.replace, the AST is traversed and nodes are removed as specified in the visitor object.
+        estraverse.traverse(ast, visitor);
+
+        return throwCatchMapping;
     }
 
     exports.process = process;
