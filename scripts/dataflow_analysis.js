@@ -25,6 +25,8 @@
     const controlFlowDependencies = astInfo.controlFlowDependencies;
     // maps line numbers of branching points to a list of break or continue statements
     const breakContinueTriggers = astInfo.breakContinueTriggers;
+    // maps line numbers of throw statements to a range of the catch clause {start: lineNr, end: lineNr}
+    const throwCatchMapping = astInfo.throwCatchMapping;
 
     const invertSwitchCaseMapping = function (switchCaseMapping) {
         const inverse = {};
@@ -140,6 +142,37 @@
         }
     }
 
+    /**
+     * If the value of the returned object is a non-primitive (i.e. an object), 
+     * then all of its properties are implicitly used. Moreover, this holds
+     * recursively: If the object is a composed object (e.g. a list or a nested
+     * object), all list values or nested object properties are implicitly used.
+     * 
+     * In that cases, the the implicit P-DEF tuples (i.e. property definitions)
+     * are added to the gen(s) set.
+     * 
+     * @param {*} lineNumber line number, where 'value' is accessed
+     * @param {*} value value whose properties might implicitly be used
+     * 
+     * @requires typeof gen[lineNumber] === Set
+     */
+    const handleImplicitPropertyUsesRecursively = function (lineNumber, value) {
+        if (typeof value === 'object' && value !== null) {
+            // first, add ALLOC tuple for object
+            const shadowId = shadowIdFromValue(value);
+            gen[lineNumber].add(ALLOC(shadowId));
+
+            // for-in loops over all enumerable properties -> works for both arrays and objects
+            for (let property in value) {
+                const fieldId = composeVarId(shadowId, property);
+                gen[lineNumber].add(P_DEF(fieldId)).add(ALLOC(shadowId));
+
+                const childValue = value[property];
+                handleImplicitPropertyUsesRecursively(lineNumber, childValue);
+            }
+        }
+    }
+
     const simpleAnalysis = function () {
         let line = undefined;
         let stack = [...history];
@@ -183,7 +216,9 @@
                 }
             }
 
-            if (exists || isRelevantBranchingPoint) {
+            const isThrowStatement = throwCatchMapping[s] !== undefined;
+
+            if (exists || isRelevantBranchingPoint || isThrowStatement) {
                 // statement (line) is included in the slice
                 const difference = new Set([...RqExit[s]].filter(e => !kill[s].has(e)));
                 RqEntry[s] = new Set([...difference, ...gen[s]]);
@@ -393,35 +428,32 @@
                 gen[lineNumber] = new Set();
             } // now, gen(s) exists
 
-            /**
-             * If the value of the returned object is a non-primitive (i.e. an object), 
-             * then all of its properties are implicitly used. Moreover, this holds
-             * recursively: If the object is a composed object (e.g. a list or a nested
-             * object), all list values or nested object properties are implicitly used.
-             * 
-             * In that cases, the the implicit P-DEF tuples (i.e. property definitions)
-             * are added to the gen(s) set.
-             * 
-             * @param {*} value value whose properties might implicitly be used
-             */
-            const handleImplicitPropertyUsesRecursively = function (value) {
-                if (typeof value === 'object' && val !== null) {
-                    // first, add ALLOC tuple for object
-                    const shadowId = shadowIdFromValue(value);
-                    gen[lineNumber].add(ALLOC(shadowId));
+            handleImplicitPropertyUsesRecursively(lineNumber, val);
+        },
 
-                    // for-in loops over all enumerable properties -> works for both arrays and objects
-                    for (let property in value) {
-                        const fieldId = composeVarId(shadowId, property);
-                        gen[lineNumber].add(P_DEF(fieldId)).add(ALLOC(shadowId));
+        /**
+         * This callback is called before a value is returned from a function using the return keyword.
+         * 
+         * Handles implicit property use in case the throw statement is the slicing criterion
+         */
+        _throw: function (iid, val) {
+            const lineNumber = singleLineNumberFromIid(iid);
+            addToHistory(lineNumber);
+            slicingCriterionCallback(lineNumber);
 
-                        const childValue = value[property];
-                        handleImplicitPropertyUsesRecursively(childValue);
-                    }
-                }
-            }
+            // Ensure, that a gen(s) exists
+            if (!gen[lineNumber]) {
+                // gen(s) does not exist yet
+                gen[lineNumber] = new Set();
+            } // now, gen(s) exists
 
-            handleImplicitPropertyUsesRecursively(val);
+            // If the throw statement is the slicing criterion, treat it the same way as a ReturnStatement
+            if (lineNumber === slicingCriterion) {
+                handleImplicitPropertyUsesRecursively(lineNumber, val);
+            } // else: let the normal dataflow analysis handle implicit property uses otherwise
+
+            // Ensure, that at least an empty catch is included in the slice once the ThrowStatement has been executed
+            keepLines.add(throwCatchMapping[lineNumber].catchStart);
         },
 
         /**

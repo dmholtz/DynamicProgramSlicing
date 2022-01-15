@@ -1,0 +1,12 @@
+[
+    {"inFile": "../testcases/errorHandling/error1_in.js", "outFile": "../testcases/errorHandling/error1_predicted_out.js", "lineNb":11, "goldFile": "../testcases/errorHandling/error1_out.js"},
+    {"inFile": "../testcases/errorHandling/error2_in.js", "outFile": "../testcases/errorHandling/error2_predicted_out.js", "lineNb":11, "goldFile": "../testcases/errorHandling/error2_out.js"},
+    {"inFile": "../testcases/errorHandling/error3_in.js", "outFile": "../testcases/errorHandling/error3_predicted_out.js", "lineNb":11, "goldFile": "../testcases/errorHandling/error3_out.js"},
+    {"inFile": "../testcases/errorHandling/error4_in.js", "outFile": "../testcases/errorHandling/error4_predicted_out.js", "lineNb":11, "goldFile": "../testcases/errorHandling/error4_out.js"},
+    {"inFile": "../testcases/errorHandling/error5_in.js", "outFile": "../testcases/errorHandling/error5_predicted_out.js", "lineNb":11, "goldFile": "../testcases/errorHandling/error5_out.js"},
+    {"inFile": "../testcases/errorHandling/error6_in.js", "outFile": "../testcases/errorHandling/error6_predicted_out.js", "lineNb":11, "goldFile": "../testcases/errorHandling/error6_out.js"},
+    {"inFile": "../testcases/errorHandling/error7_in.js", "outFile": "../testcases/errorHandling/error7_predicted_out.js", "lineNb":11, "goldFile": "../testcases/errorHandling/error7_out.js"},
+    {"inFile": "../testcases/errorHandling/error8_in.js", "outFile": "../testcases/errorHandling/error8_predicted_out.js", "lineNb":10, "goldFile": "../testcases/errorHandling/error8_out.js"},
+    {"inFile": "../testcases/errorHandling/error9_in.js", "outFile": "../testcases/errorHandling/error9_predicted_out.js", "lineNb":32, "goldFile": "../testcases/errorHandling/error9_out.js"}
+]
+    
