@@ -1,38 +1,44 @@
 (function () {
 	const fs = require('fs');
+	const escodegen = require('escodegen');
+	const { Parser } = require('acorn');
 	var levenshtein = require('fast-levenshtein');
 	const { ArgumentParser } = require("argparse");
-	const parser = new ArgumentParser({
+	const argumentParser = new ArgumentParser({
 		description: "Executes the slice.js file on provided arguments.",
 	});
-	parser.add_argument(
+	argumentParser.add_argument(
 		"--source", { help: "JSON source file containing arguments for slice.js file.", required: true });
 
-	const args = parser.parse_args();
+	const args = argumentParser.parse_args();
 
 	function readFile(fileName) {
 		return fs.readFileSync(fileName, 'utf8');
 	}
 
+	function reformatTestCode(codeString) {
+		const program = Parser.parse(codeString,
+			{ ecmaVersion: 5, locations: true }
+		)
+		const program_string = escodegen.generate(program)
+		return program_string
+	}
+
 	function compare(originalFile, predictedFile) {
-		expectedSlice = readFile(originalFile);
-		predictedSlice = readFile(predictedFile);
+		expectedSlice = reformatTestCode(readFile(originalFile));
+		predictedSlice = reformatTestCode(readFile(predictedFile));
 
 		if (expectedSlice === predictedSlice) {
 			console.log("exact match");
 		} else {
 			console.log(levenshtein.get(expectedSlice, predictedSlice));
-
 		}
-
-
 	}
 
 	function read_criteria_file(sourceFile) {
 		var data = JSON.parse(readFile(sourceFile));
 		return data;
 	}
-
 
 	function run_slice(element) {
 		// create input parameters from args ditcionary
@@ -51,8 +57,6 @@
 					console.log('stderr: ' + stderr);
 				}
 			});
-
-
 	}
 
 	// read input file containing criteria

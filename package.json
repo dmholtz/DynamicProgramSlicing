@@ -1,6 +1,6 @@
 {
   "dependencies": {
-    "acorn": "^8.6.0",
+    "acorn": "^8.7.0",
     "argparse": "^2.0.1",
     "escodegen": "^2.0.0",
     "estraverse": "^5.3.0",
@@ -11,7 +11,6 @@
   "version": "1.0.0",
   "description": "Dynamic program analysis for backward slicing",
   "main": "scripts/testRunner.js",
-  "devDependencies": {},
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
