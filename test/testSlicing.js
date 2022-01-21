@@ -30,27 +30,6 @@ function read_criteria_file(sourceFile) {
 
 function singleSlicingTest(testCase) {
 
-    //const trimPath = path => {
-    //    return path.replace('../', '');
-    //}
-    //
-    //const extractName = testCase => {
-    //    let name = testCase['inFile'];
-    //    name = name.replace(/.*\//, '');
-    //    return name.replace(/\.js/, '');
-    //}
-    //
-    //inputArgs = " --inFile " + testCase['inFile'] + " --outFile " + testCase['outFile'] + " --lineNb " + testCase['lineNb'];
-    //stmt = 'cd scripts; node slice.js' + inputArgs + "; cd ..";
-    //
-    //const execSync = require('child_process').execSync;
-    //const child = execSync(stmt);
-    //
-    //it(`correctly in test ${extractName(testCase)} `, function () {
-    //    const levenshteinDistance = compare(trimPath(testCase['outFile']), trimPath(testCase['goldFile']));
-    //    assert.equal(levenshteinDistance, 0, 'Levenshtein distance > 0');
-    //});
-    //
     const trimPath = path => {
         return path.replace('../', '');
     }
@@ -61,18 +40,39 @@ function singleSlicingTest(testCase) {
         return name.replace(/\.js/, '');
     }
 
+    inputArgs = " --inFile " + testCase['inFile'] + " --outFile " + testCase['outFile'] + " --lineNb " + testCase['lineNb'];
+    stmt = 'cd scripts; node slice.js' + inputArgs + "; cd ..";
+
+    const execSync = require('child_process').execSync;
+    const child = execSync(stmt);
+
     it(`correctly in test ${extractName(testCase)} `, function () {
-        inputArgs = " --inFile " + testCase['inFile'] + " --outFile " + testCase['outFile'] + " --lineNb " + testCase['lineNb'];
-        stmt = 'cd scripts; node slice.js' + inputArgs + "; cd ..";
-
-        const exec = require('child_process').exec;
-        const child = exec(stmt);
-
-        child.on('exit', () => {
-            const levenshteinDistance = compare(trimPath(testCase['outFile']), trimPath(testCase['goldFile']));
-            assert.equal(levenshteinDistance, 0, 'Levenshtein distance > 0');
-        });
+        const levenshteinDistance = compare(trimPath(testCase['outFile']), trimPath(testCase['goldFile']));
+        assert.equal(levenshteinDistance, 0, 'Levenshtein distance > 0');
     });
+
+    //const trimPath = path => {
+    //    return path.replace('../', '');
+    //}
+    //
+    //const extractName = testCase => {
+    //    let name = testCase['inFile'];
+    //    name = name.replace(/.*\//, '');
+    //    return name.replace(/\.js/, '');
+    //}
+    //
+    //it(`correctly in test ${extractName(testCase)} `, function () {
+    //    inputArgs = " --inFile " + testCase['inFile'] + " --outFile " + testCase['outFile'] + " --lineNb " + testCase['lineNb'];
+    //    stmt = 'cd scripts; node slice.js' + inputArgs + "; cd ..";
+    //
+    //    const exec = require('child_process').exec;
+    //    const child = exec(stmt);
+    //
+    //    child.on('exit', () => {
+    //        const levenshteinDistance = compare(trimPath(testCase['outFile']), trimPath(testCase['goldFile']));
+    //        assert.equal(levenshteinDistance, 0, 'Levenshtein distance > 0');
+    //    });
+    //});
 }
 
 function runTestCaseList(testCases) {
