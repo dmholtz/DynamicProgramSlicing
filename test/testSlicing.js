@@ -40,21 +40,15 @@ function singleSlicingTest(testCase) {
         return name.replace(/\.js/, '');
     }
 
-    const inFile = trimPath(testCase['inFile']);
-    const outFile = trimPath(testCase['outFile']);
-    const goldFile = trimPath(testCase['goldFile']);
-    const lineNb = testCase['lineNb'];
+    inputArgs = " --inFile " + testCase['inFile'] + " --outFile " + testCase['outFile'] + " --lineNb " + testCase['lineNb'];
+    stmt = 'cd scripts; node slice.js' + inputArgs + "; cd ..";
 
-    inputArgs = " --inFile " + inFile + " --outFile " + outFile + " --lineNb " + lineNb;
-    stmt = 'node scripts/slice.js' + inputArgs;
-
-    var exec = require('child_process').exec,
-        child;
+    var exec = require('child_process').exec, child;
 
     child = exec(stmt);
 
     it(`correctly in test ${extractName(testCase)}`, function () {
-        const levenshteinDistance = compare(goldFile, goldFile);
+        const levenshteinDistance = compare(trimPath(testCase['outFile']), trimPath(testCase['goldFile']));
         assert.equal(levenshteinDistance, 0, 'Levenshtein distance > 0');
     });
 }
@@ -76,6 +70,10 @@ describe('slice.js should be able to', function () {
     });
     describe('deal with error handling within functions', function () {
         testCases = read_criteria_file('scripts/errorHandling_testCases.json');
+        runTestCaseList(testCases);
+    });
+    describe('deal with loops', function () {
+        testCases = read_criteria_file('scripts/loop_testCases.json');
         runTestCaseList(testCases);
     });
     describe('slice examples from the second progress meeting', function () {
