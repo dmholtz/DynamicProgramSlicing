@@ -15,8 +15,25 @@
 
         console.log("running slice.js for arguments: " + inFile, outFile, lineNb);
 
-        // Load script to be analyzed
+        const instrumentedCodeFile = inFile.replace(".js", "_jalangi_.js");
+        const astInfoFile = inFile.replace('.js', '_astInfo_.json');
+        const analyisOutFile = inFile.replace(".js", "_analysis_out_.json");
+
+        // before running the dynamic analysis, delete all previous artifacts
         const fs = require('fs');
+
+        const deleteFile = function (fileName) {
+            try {
+                fs.unlinkSync(fileName);
+            } catch (err) { }
+        }
+
+        deleteFile(instrumentedCodeFile);
+        deleteFile(astInfoFile);
+        deleteFile(analyisOutFile);
+        deleteFile(outFile);
+
+        // Load script to be analyzed
         const inCode = fs.readFileSync(inFile, 'utf-8');
 
         // Instrument the code using Jalangi and save the output
@@ -26,15 +43,11 @@
             inlineSource: true
         }
         const instrumentResult = instrumentString(inCode, instrumentOptions);
-        const instrumentedCodeFile = inFile.replace(".js", "_jalangi_.js");
         fs.writeFileSync(instrumentedCodeFile, instrumentResult.code);
 
         // Run the AST preprocessing
         const astPreprocessor = require('./ast_preprocessor.js');
         const astInfo = astPreprocessor.process(inFile);
-        //const astInfo = { switchCaseMapping: switchCaseMapping };
-
-        const astInfoFile = inFile.replace('.js', '_astInfo_.json');
         fs.writeFileSync(astInfoFile, JSON.stringify(astInfo), { encoding: 'utf-8' });
 
         // Analyze the instrumented code using Jalangi
@@ -45,12 +58,12 @@
             sMemoryPath,
             analysisFile
         ];
-        const analyisOutFile = inFile.replace(".js", "_analysis_out_.json");
         const initParams = {
             slicingCriterion: lineNb,
             analyisOutFile: analyisOutFile,
             astInfoFile: astInfoFile
         }
+
         const analysisPromise = analyze(instrumentedCodeFile, analyses, initParams);
 
         // Load the analysis result

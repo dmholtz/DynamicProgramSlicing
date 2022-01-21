@@ -83,7 +83,7 @@
                 if (node.type === 'SwitchStatement') {
                     parentSwitchStatementNodes.push(firstLineOfNode(node))
                 } else if (node.type === 'SwitchCase') {
-                    const switchLine = parentSwitchStatementNodes.at(-1);
+                    const switchLine = parentSwitchStatementNodes.slice(-1)[0];
                     const caseLine = firstLineOfNode(node);
                     if (!switchCaseMapping[switchLine]) {
                         switchCaseMapping[switchLine] = [];
@@ -126,8 +126,8 @@
             enter: (node, _) => {
                 const lineNumber = firstLineOfNode(node);
 
-                if (dependentNodeStack.at(-1)) {
-                    let topElement = Array.isArray(dependentNodeStack.at(-1)) ? dependentNodeStack.at(-1) : [dependentNodeStack.at(-1)];
+                if (dependentNodeStack.slice(-1)[0]) {
+                    let topElement = Array.isArray(dependentNodeStack.slice(-1)[0]) ? dependentNodeStack.slice(-1)[0] : [dependentNodeStack.slice(-1)[0]];
                     if (!topElement.includes(lineNumber) && node.type !== 'SwitchCase') {
                         for (let dependentLineNumber of topElement) {
                             const controlFlowDependency = {}; controlFlowDependency[dependentLineNumber] = lineNumber;
@@ -144,27 +144,27 @@
                 } else if (node.type === 'DoWhileStatement') {
                     dependentNodeStack.push(lastLineOfNode(node))
                 } else if (node.type === 'SwitchCase') {
-                    if (!Array.isArray(dependentNodeStack.at(-1))) {
+                    if (!Array.isArray(dependentNodeStack.slice(-1)[0])) {
                         dependentNodeStack.push([lineNumber]);
                     }
                     else {
-                        dependentNodeStack.at(-1).push(lineNumber);
+                        dependentNodeStack.slice(-1)[0].push(lineNumber);
                     }
-                    let topElement = Array.isArray(dependentNodeStack.at(-2)) ? dependentNodeStack.at(-2) : [dependentNodeStack.at(-2)];
+                    let topElement = Array.isArray(dependentNodeStack.slice(-2)[0]) ? dependentNodeStack.slice(-2)[0] : [dependentNodeStack.slice(-2)[0]];
                     if (!topElement.includes(lineNumber)) {
                         for (let dependentLineNumber of topElement) {
                             const controlFlowDependency = {}; controlFlowDependency[dependentLineNumber] = lineNumber;
                             controlFlowDependencies.add(JSON.stringify(controlFlowDependency));
                         }
                     }
-                } else if (node.type === 'BreakStatement' && Array.isArray(dependentNodeStack.at(-1))) {
+                } else if (node.type === 'BreakStatement' && Array.isArray(dependentNodeStack.slice(-1)[0])) {
                     dependentNodeStack.pop();
                 }
 
                 if (expectedBreakStatements > 1 && node.type !== 'SwitchCase') {
                     for (let i = 2; i <= expectedBreakStatements; i++) {
                         if (!dependentNodeStack.includes(lineNumber)) {
-                            const dependentLineNumber = dependentNodeStack.at(-i);
+                            const dependentLineNumber = dependentNodeStack.slice(-2)[0];
                             const controlFlowDependency = {}; controlFlowDependency[dependentLineNumber] = lineNumber;
                             //controlFlowDependencies.add(JSON.stringify(controlFlowDependency));
                         }
@@ -179,7 +179,7 @@
                     || node.type === 'DoWhileStatement') {
                     dependentNodeStack.pop();
                 } else if (node.type === 'SwitchStatement') {
-                    if (Array.isArray(dependentNodeStack.at(-1))) {
+                    if (Array.isArray(dependentNodeStack.slice(-1)[0])) {
                         dependentNodeStack.pop();
                     }
                     dependentNodeStack.pop(); // SwitchStatement
@@ -261,11 +261,11 @@
                 if (node.type === 'TryStatement') {
                     stack.push({ catchStart: undefined, catchEnd: undefined, throwLines: [] });
                 } else if (node.type === 'CatchClause') {
-                    const mapping = stack.at(-1);
+                    const mapping = stack.slice(-1)[0];
                     mapping.catchStart = firstLineOfNode(node);
                     mapping.catchEnd = lastLineOfNode(node);
                 } else if (node.type === 'ThrowStatement') {
-                    const mapping = stack.at(-1);
+                    const mapping = stack.slice(-1)[0];
                     mapping.throwLines.push(firstLineOfNode(node));
                 }
             },

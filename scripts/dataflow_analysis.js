@@ -107,7 +107,7 @@
     }
 
     const addToHistory = function (lineNumber) {
-        if (history.at(-1) != lineNumber) {
+        if (history.slice(-1)[0] != lineNumber) {
             history.push(lineNumber);
         }
     }
