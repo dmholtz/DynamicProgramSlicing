@@ -51,5 +51,6 @@ jobs:
         cache: 'npm'
     - run: npm ci
     - run: npm run build --if-present
-    - run: cd scripts
-    - run: node testRunner.js --source milestone2_testCases.json
+    - run: |
+        cd scripts
+        node testRunner.js --source milestone2_testCases.json
