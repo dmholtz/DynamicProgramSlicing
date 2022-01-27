@@ -50,29 +50,6 @@ function singleSlicingTest(testCase) {
         const levenshteinDistance = compare(trimPath(testCase['outFile']), trimPath(testCase['goldFile']));
         assert.equal(levenshteinDistance, 0, 'Levenshtein distance > 0');
     });
-
-    //const trimPath = path => {
-    //    return path.replace('../', '');
-    //}
-    //
-    //const extractName = testCase => {
-    //    let name = testCase['inFile'];
-    //    name = name.replace(/.*\//, '');
-    //    return name.replace(/\.js/, '');
-    //}
-    //
-    //it(`correctly in test ${extractName(testCase)} `, function () {
-    //    inputArgs = " --inFile " + testCase['inFile'] + " --outFile " + testCase['outFile'] + " --lineNb " + testCase['lineNb'];
-    //    stmt = 'cd scripts; node slice.js' + inputArgs + "; cd ..";
-    //
-    //    const exec = require('child_process').exec;
-    //    const child = exec(stmt);
-    //
-    //    child.on('exit', () => {
-    //        const levenshteinDistance = compare(trimPath(testCase['outFile']), trimPath(testCase['goldFile']));
-    //        assert.equal(levenshteinDistance, 0, 'Levenshtein distance > 0');
-    //    });
-    //});
 }
 
 function runTestCaseList(testCases) {
@@ -100,6 +77,10 @@ describe('slice.js should be able to', function () {
     });
     describe('slice examples from the second progress meeting', function () {
         testCases = read_criteria_file('scripts/progress2_testCases.json');
+        runTestCaseList(testCases);
+    });
+    describe('slice examples from the third progress meeting', function () {
+        testCases = read_criteria_file('scripts/progress3_testCases.json');
         runTestCaseList(testCases);
     });
 });
