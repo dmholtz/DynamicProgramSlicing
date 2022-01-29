@@ -4,8 +4,6 @@
  * (C) by dmholtz
  */
 
-const { parseExpressionAt } = require('acorn');
-
 (function clone(exports) {
 
     /**
@@ -46,10 +44,10 @@ const { parseExpressionAt } = require('acorn');
         const estraverse = require('estraverse');
 
         // a node is kept if there is a line number in keepLines, which lies between the node's start- and end line
-        let isNodeContained = function (node) {
+        const isNodeContained = function (node) {
             let isContained = false;
-            let startLine = node.loc.start.line;
-            let endLine = node.loc.end.line;
+            const startLine = node.loc.start.line;
+            const endLine = node.loc.end.line;
 
             for (let line of keepLines) {
                 if (startLine <= line && line <= endLine) {
