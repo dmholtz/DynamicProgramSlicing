@@ -192,7 +192,7 @@
      * This function should be called after having successfully executed the input program,
      * i.e. it should be called within the 'endExecution' callback
      */
-    const simpleAnalysis = function () {
+    const extendedDataflowAnalysis = function () {
         let s = undefined;          // current line (statement) number
         let stack = [...history];   // deep copy of the history
 
@@ -341,10 +341,8 @@
          * an object literal, an array literal, a number, a string, a boolean, a regular expression, null, 
          * NaN, Infinity, or undefined.
          * 
-         * Remark:
-         *  - The post increment operator (i.e. ++) calls this callback with an undefined iid and a value
-         *    of 1.
-         *  - Such callbacks will be ignored.
+         * Remark: The post increment operator (i.e. ++) calls this callback with an undefined iid and a value
+         *         of 1. Such callbacks will be ignored.
          * 
          * @param {*} iid 
          * @param {*} val 
@@ -557,7 +555,7 @@
             console.log("GEN ", gen);
             console.log("KILL ", kill);
             console.log("HISTORY ", history);
-            const locs = simpleAnalysis();
+            const locs = extendedDataflowAnalysis();
             console.log(`The slice contains the following LOCs: ${locs}`);
             console.log("MISSING DECLARATIONS: ", missingDeclarations);
 
