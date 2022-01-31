@@ -491,6 +491,8 @@
                 handleImplicitPropertyUsesRecursively(lineNumber, val);
             } // else: let the normal dataflow analysis handle implicit property uses otherwise
 
+            // Every throw statement, which is executed, is included in the slice
+            keepLines.add(lineNumber);
             // Ensure, that at least an empty catch is included in the slice once the ThrowStatement has been executed
             keepLines.add(throwCatchMapping[lineNumber].catchStart);
         },

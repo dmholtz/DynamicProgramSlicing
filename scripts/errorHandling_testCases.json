@@ -7,6 +7,8 @@
     {"inFile": "../testcases/errorHandling/error6_in.js", "outFile": "../testcases/errorHandling/error6_predicted_out.js", "lineNb":11, "goldFile": "../testcases/errorHandling/error6_out.js"},
     {"inFile": "../testcases/errorHandling/error7_in.js", "outFile": "../testcases/errorHandling/error7_predicted_out.js", "lineNb":11, "goldFile": "../testcases/errorHandling/error7_out.js"},
     {"inFile": "../testcases/errorHandling/error8_in.js", "outFile": "../testcases/errorHandling/error8_predicted_out.js", "lineNb":10, "goldFile": "../testcases/errorHandling/error8_out.js"},
-    {"inFile": "../testcases/errorHandling/error9_in.js", "outFile": "../testcases/errorHandling/error9_predicted_out.js", "lineNb":32, "goldFile": "../testcases/errorHandling/error9_out.js"}
+    {"inFile": "../testcases/errorHandling/error9_in.js", "outFile": "../testcases/errorHandling/error9_predicted_out.js", "lineNb":32, "goldFile": "../testcases/errorHandling/error9_out.js"},
+    {"inFile": "../testcases/errorHandling/error10_in.js", "outFile": "../testcases/errorHandling/error10_predicted_out.js", "lineNb":8, "goldFile": "../testcases/errorHandling/error10_out.js"},
+    {"inFile": "../testcases/errorHandling/error11_in.js", "outFile": "../testcases/errorHandling/error11_predicted_out.js", "lineNb":12, "goldFile": "../testcases/errorHandling/error11_out.js"}
 ]
     
