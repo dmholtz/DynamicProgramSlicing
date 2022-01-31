@@ -351,6 +351,7 @@
         literal: function (iid, val, hasGetterSetter) {
             const lineNumber = singleLineNumberFromIid(iid);
             if (lineNumber) {
+                // ignore callbacks with undefined iids (e.g. post-increment operators)
                 addToHistory(lineNumber);
                 slicingCriterionCallback(lineNumber);
 
@@ -364,7 +365,7 @@
                     } // now, gen(s) exists
                     kill[lineNumber].add(ALLOC(shadowId));
 
-                    // kill all property-defs
+                    // kill all property-defs at allocation
                     for (property in val) {
                         const fieldId = composeVarId(shadowId, property)
                         kill[lineNumber].add(P_DEF(fieldId));
@@ -509,6 +510,12 @@
          * - As a result, the SwitchStatement discriminant node will be considered if at least one of
          *   the cases is true. Otherwise, the entire SwitchStatement node will be excluded.
          * - All the mappings are based on line numbers of the discriminant node and the 'case' nodes.
+         * 
+         * Break / Contine Statements
+         * - Any break statement, that is control-flow dependent upon a conditional, which is executed, is
+         *   included in the slice
+         * - This is might be an overapproximation of the slice in case the break does not change the programs
+         *   output. Detecting that, however, is hard.
          * @param {*} iid 
          * @param {*} val 
          */
@@ -517,7 +524,9 @@
             addToHistory(lineNumber);
             slicingCriterionCallback(lineNumber);
 
+            // detect the type of the branching construct
             if (caseSwitchMapping && caseSwitchMapping[lineNumber] !== undefined) {
+                // branching happend at SwitchCase node
                 const caseLine = lineNumber; // just an alias for readability
                 if (val) {
                     // test-condition is true, consequent node will be executed
@@ -544,11 +553,8 @@
         },
 
         /**
-         * This callback is called when an execution terminates in node.js.  In a browser
-         * environment, the callback is called if ChainedAnalyses.js or ChainedAnalysesNoCheck.js
-         * is used and Alt-Shift-T is pressed.
-         *
-         * @returns {undefined} - Any return value is ignored
+         * This callback is called when an execution terminates in node.js.
+         * Writes the output artifacts of the dynamic analysis into a *_analysis_out.json file.
          */
         endExecution: function () {
             console.log("INIT-PARAMS ", J$.initParams)
