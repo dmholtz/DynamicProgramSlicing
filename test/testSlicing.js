@@ -59,12 +59,20 @@ function runTestCaseList(testCases) {
 }
 
 describe('slice.js should be able to', function () {
-    describe('handle dataflow dependencies', function () {
+    describe('slice examples from milestone 2', function () {
         testCases = read_criteria_file('scripts/testcases_milestone2.json');
         runTestCaseList(testCases);
     });
+    describe('handle dataflow dependencies', function () {
+        testCases = read_criteria_file('scripts/testcases_dataflow.json');
+        runTestCaseList(testCases);
+    });
+    describe('slice examples from milestone 3', function () {
+        testCases = read_criteria_file('scripts/testcases_milestone3.json');
+        runTestCaseList(testCases);
+    });
     describe('handle control flow dependencies', function () {
-        testCases = read_criteria_file('scripts/milestone3_testCases.json');
+        testCases = read_criteria_file('scripts/testcases_controlflow.json');
         runTestCaseList(testCases);
     });
     describe('deal with error handling within functions', function () {
@@ -76,11 +84,11 @@ describe('slice.js should be able to', function () {
         runTestCaseList(testCases);
     });
     describe('slice examples from the second progress meeting', function () {
-        testCases = read_criteria_file('scripts/progress2_testCases.json');
+        testCases = read_criteria_file('scripts/testcases_progress2.json');
         runTestCaseList(testCases);
     });
     describe('slice examples from the third progress meeting', function () {
-        testCases = read_criteria_file('scripts/progress3_testCases.json');
+        testCases = read_criteria_file('scripts/testcases_progress3.json');
         runTestCaseList(testCases);
     });
 });

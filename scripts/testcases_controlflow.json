@@ -1,0 +1,6 @@
+[
+    {"inFile": "../testcases/controlflow/test1_in.js", "outFile": "../testcases/controlflow/test1_predicted_out.js", "lineNb":10, "goldFile": "../testcases/controlflow/test1_out.js"},
+    {"inFile": "../testcases/controlflow/test2_in.js", "outFile": "../testcases/controlflow/test2_predicted_out.js", "lineNb":11, "goldFile": "../testcases/controlflow/test2_out.js"},
+    {"inFile": "../testcases/controlflow/test3_in.js", "outFile": "../testcases/controlflow/test3_predicted_out.js", "lineNb":11, "goldFile": "../testcases/controlflow/test3_out.js"},
+    {"inFile": "../testcases/controlflow/ternary_in.js", "outFile": "../testcases/controlflow/ternary_predicted_out.js", "lineNb":10, "goldFile": "../testcases/controlflow/ternary_out.js"}
+]

@@ -11,4 +11,4 @@ function sliceMe() {
 }
 sliceMe();
 
-// Test tenary ?: operator
+// Test ternary ?: operator
