@@ -79,10 +79,6 @@ describe('slice.js should be able to', function () {
         testCases = read_criteria_file('scripts/testcases_errorhandling.json');
         runTestCaseList(testCases);
     });
-    describe('deal with loops', function () {
-        testCases = read_criteria_file('scripts/loop_testCases.json');
-        runTestCaseList(testCases);
-    });
     describe('slice examples from the second progress meeting', function () {
         testCases = read_criteria_file('scripts/testcases_progress2.json');
         runTestCaseList(testCases);
