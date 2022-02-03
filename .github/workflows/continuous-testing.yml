@@ -55,5 +55,5 @@ jobs:
         cd scripts
         node testRunner.js --source progress2_testCases.json
         node testRunner.js --source progress3_testCases.json
-        node testRunner.js --source milestone2_testCases.json
+        node testRunner.js --source testcases_milestone2.json
         node testRunner.js --source milestone3_testCases.json

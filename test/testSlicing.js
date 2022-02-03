@@ -60,7 +60,7 @@ function runTestCaseList(testCases) {
 
 describe('slice.js should be able to', function () {
     describe('handle dataflow dependencies', function () {
-        testCases = read_criteria_file('scripts/milestone2_testCases.json');
+        testCases = read_criteria_file('scripts/testcases_milestone2.json');
         runTestCaseList(testCases);
     });
     describe('handle control flow dependencies', function () {
