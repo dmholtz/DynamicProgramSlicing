@@ -26,16 +26,20 @@
      * Reads a source file and processes the AST of the contained JS program.
      * This is the entry point of this node module.
      * @param {} inputFile path of the source to be analyzed
-     * @returns astInfo 
+     * @returns astInfo object
      */
     function process(inputFile) {
         console.log('Called process for JavaScript file ' + inputFile);
 
         const ast = parseFile(inputFile);
 
+        // object, that maps lines of SwitchStatments to their associated SwitchCase nodes
         const switchCaseMapping = gatherSwitchStatements(ast);
+        // object, that maps lines of branching points to a list of their control flow dependet lines
         const controlFlowDependencies = getControlFlowDependencies(ast);
+        // object, that maps lines of branching points to a list of their control flow dependent break / continue statements
         const breakContinueTriggers = getBreakContinueTriggers(ast, controlFlowDependencies);
+        // object, that maps lines of throw statements to the associated catch-block, denoted by an object { catchStart: #lineNr, catchEnd: #lineNr }
         const throwCatchMapping = getThrowCatchMapping(ast);
 
         // assemble the results into a single object
@@ -99,11 +103,19 @@
             }
         }
 
-        // using estraverse.replace, the AST is traversed and nodes are removed as specified in the visitor object.
+        // using estraverse.traverse the AST is traversed and the information is accumulated
         estraverse.traverse(ast, visitor);
         return switchCaseMapping;
     }
 
+    /**
+     * Computes control flow dependencies of a JS program.
+     * Therefore, branching points are mapped to a list of their control dependent child nodes
+     * 
+     * Remark:
+     * - detects the switch-case fallthrough by modelling that one line of code might be 
+     *   controlflow dependent upon multiple branching points
+     */
     function getControlFlowDependencies(ast) {
 
         const estraverse = require('estraverse');
@@ -114,11 +126,10 @@
          */
         let controlFlowDependencies = new Set();
 
-        /**
-         * 
-         */
+        // history of nested branching points
         let dependentNodeStack = [];
 
+        // detect when the switch-case fallthrough is stopped by a break
         let expectedBreakStatements = 0;
 
         // define traverse rules
@@ -189,12 +200,13 @@
             }
         }
 
-        // using estraverse.replace, the AST is traversed and nodes are removed as specified in the visitor object.
+        // using estraverse.traverse the AST is traversed and the information is accumulated
         estraverse.traverse(ast, visitor);
 
         const copy = [...controlFlowDependencies];
         controlFlowDependencies = {};
 
+        // inverse the mapping for later usage
         for (let jsonDependency of copy) {
             const dependency = JSON.parse(jsonDependency);
             for (let dependent in dependency) {
@@ -209,21 +221,29 @@
         return controlFlowDependencies;
     }
 
+    /**
+     * Computes for every branching points a list of control flow dependent
+     * Break or Continue Statments.
+     * 
+     * Remark:
+     * - Computation relies on correctly computed controlFlowDependencies
+     */
     function getBreakContinueTriggers(ast, controlFlowDependencies) {
 
         const estraverse = require('estraverse');
 
         const breakContinueTriggers = {};
 
-        const addTrigger = function (lineNumber) {
+        // Detects break / continue triggers using the control flow dependencies
+        const addTrigger = function (breakContinueLine) {
             for (trigger in controlFlowDependencies) {
                 const dependentLines = controlFlowDependencies[trigger];
-                if (dependentLines.includes(lineNumber)) {
+                if (dependentLines.includes(breakContinueLine)) {
                     if (!breakContinueTriggers[trigger]) {
-                        breakContinueTriggers[trigger] = [lineNumber];
+                        breakContinueTriggers[trigger] = [breakContinueLine];
                     }
                     else {
-                        breakContinueTriggers[trigger].push(lineNumber);
+                        breakContinueTriggers[trigger].push(breakContinueLine);
                     }
                 }
             }
@@ -242,12 +262,15 @@
             }
         }
 
-        // using estraverse.replace, the AST is traversed and nodes are removed as specified in the visitor object.
+        // using estraverse.traverse the AST is traversed and the information is accumulated
         estraverse.traverse(ast, visitor);
 
         return breakContinueTriggers;
     }
 
+    /**
+     * Links the throw statements to their associated catch-block
+     */
     function getThrowCatchMapping(ast) {
 
         const estraverse = require('estraverse');
@@ -286,7 +309,7 @@
             }
         }
 
-        // using estraverse.replace, the AST is traversed and nodes are removed as specified in the visitor object.
+        // using estraverse.traverse the AST is traversed and the information is accumulated
         estraverse.traverse(ast, visitor);
 
         return throwCatchMapping;

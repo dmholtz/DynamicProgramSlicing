@@ -1,16 +1,18 @@
 (function () {
-    let missingDeclarations = new Set();
-    let history = [];
 
-    let gen = {};
-    let kill = {};
+    // output artifacts
+    let missingDeclarations = new Set();    // set of variable declarations for AST postprocessing
+    const keepLines = new Set();            // set of line numbers that are included in the slice
 
-    const keepLines = new Set();
-    const branchingPoints = new Set();
+    // intermediate artifacts
+    let history = [];   // tracks the sequence of executed lines in the input program
+    let gen = {};       // contains all gen sets: gen[s] is the gen-set for statement s
+    let kill = {};      // contains all kill sets: kill[s] is the kill-set for statement s
+    const branchingPoints = new Set();  // a set of line numbers, were the control flow splits
 
     /**
      * Load init parameters
-     * Object value parameters are loaded from the astInfo file.
+     * Object value parameters are loaded from the *_astInfo_.json file.
      */
     const slicingCriterion = Number(J$.initParams.slicingCriterion);
     const astInfoFile = J$.initParams.astInfoFile;
@@ -41,15 +43,8 @@
     // maps line numbers of case-statements to their parent switch-statements
     const caseSwitchMapping = invertSwitchCaseMapping(switchCaseMapping);
 
-    const lineNumberRangeFromIid = function (iid) {
-        locationArray = J$.iids[iid];
-        return { startLine: locationArray[0], endLine: locationArray[2] };
-    }
-
     /**
      * Return the line number for a iid and undefined if the iid does not exist.
-     * @param {*} iid 
-     * @returns 
      */
     const singleLineNumberFromIid = function (iid) {
         locationArray = J$.iids[iid];
@@ -60,12 +55,14 @@
         }
     }
 
+    // Shadow Memory: Returns the frame's id given a name (e.g of a function or variable)
     const frameIdFromName = function (name) {
         const sobj = J$.smemory.getShadowFrame(name);
         const frameId = J$.smemory.getIDFromShadowObjectOrFrame(sobj);
         return frameId;
     }
 
+    // Shadow Memory: Returns the shadow id of a value (e.g of an JS object)
     const shadowIdFromValue = function (value) {
         const sobj = J$.smemory.getShadowObjectOfObject(value);
         const shadowId = J$.smemory.getIDFromShadowObjectOrFrame(sobj);
@@ -76,11 +73,14 @@
         return frameId + "." + name;
     }
 
+    // Creates a key-value tuple as an object and returns the stringified version of it
     const makeJsonTuple = function (key, value) {
         const tuple = {};
         tuple[key] = value;
         return JSON.stringify(tuple);
     }
+
+    /* Create primitive tuples for a name (or id) */
 
     const DEF = function (name) {
         return makeJsonTuple("def", name);
@@ -106,12 +106,14 @@
         return makeJsonTuple("enter", name);
     }
 
+    // Adds a line to history unless it is not already on top of the history stack
     const addToHistory = function (lineNumber) {
         if (history.slice(-1)[0] != lineNumber) {
             history.push(lineNumber);
         }
     }
 
+    // Given a stringified DEC-tuple, extract the variable name from it and add it to missing declarations
     const handleMissingDeclaration = function (tuple) {
         const tupleObj = JSON.parse(tuple);
         if (tupleObj.dec) {
@@ -173,26 +175,62 @@
         }
     }
 
-    const simpleAnalysis = function () {
-        let line = undefined;
-        let stack = [...history];
-        while (stack.length > 0 && line !== slicingCriterion) {
-            line = stack.pop();
+    // computes set1 SET_MINUS set2
+    const setMinus = function (set1, set2) {
+        return new Set([...set1].filter(e => !set2.has(e)));
+    }
+
+    // computes set1 UNION set2
+    const setUnion = function (set1, set2) {
+        return new Set([...set1, ...set2]);
+    }
+
+    /**
+     * Computes the dataflow equations. As a result, both the keepLines set and the set
+     * of missing declarations are computed.
+     * 
+     * This function should be called after having successfully executed the input program,
+     * i.e. it should be called within the 'endExecution' callback
+     */
+    const extendedDataflowAnalysis = function () {
+        let s = undefined;          // current line (statement) number
+        let stack = [...history];   // deep copy of the history
+
+        /* Trivial: Ignore all lines after the slicing criterion. Therefore, line numbers are
+         * popped from the stack, until the slicing criterion is reached. In case the slicing
+         * criterion is reached several times, we stop at the last occurence.
+         */
+        while (stack.length > 0 && s !== slicingCriterion) {
+            s = stack.pop();
         }
         keepLines.add(slicingCriterion);
+
+        /**
+         * Initialize the required actions object. 
+         * RqEntry[s] / RqExit[s] is a set of (primitive, name) tuples, 
+         * e.g. {(DEC, x), (DEF, x)}
+         */
+        RqEntry = {};
+        RqExit = {};
+
+        // Compute the boundary conditions of RqEntry[slicingCriterion]
         RqEntry = {}; RqEntry[slicingCriterion] = gen[slicingCriterion];
         RqExit = {}; RqExit[slicingCriterion] = new Set();
+
+        // Propagate the RqEntry backwards until the start of the program (i.e. history) is reached
+        let previousLine = s;       // previous line from a backward execution perspective
         while (stack.length > 0) {
-            const s = stack.pop(); // s: current statement
-            RqExit[s] = RqEntry[line];
+            s = stack.pop();        // current line (statement) number
+            RqExit[s] = RqEntry[previousLine]; // backward analysis
 
             // create empty gen(s) and kill(s) sets in case they do not exist
             kill[s] = !kill[s] ? new Set() : kill[s];
             gen[s] = !gen[s] ? new Set() : gen[s];
 
-            // check, if an element of kill(s) exists in RqExit(s)
-            let exists = false;
+            // true, iff an element of kill(s) exists in RqExit(s)
+            let killsRequired = false;
 
+            // loop over all tuples in the kill set to check if the kill any required statement
             for (const tuple of kill[s]) {
                 if (RqExit[s].has(tuple)) {
                     /**
@@ -201,14 +239,16 @@
                      * saved to a list of missing declarations.
                      */
                     handleMissingDeclaration(tuple);
-                    exists = true;
+                    killsRequired = true;
                 }
             }
 
+            // true iff s is branching point and any upon s control flow dependent line number is alread included in the slice
             let isRelevantBranchingPoint = false;
-            const controlFlowDependentNodes = controlFlowDependencies[s];
-            if (controlFlowDependentNodes) {
-                for (let node of controlFlowDependentNodes) {
+            const controlFlowDependentLines = controlFlowDependencies[s];
+            if (controlFlowDependentLines) {
+                // loop over all control flow dependent lines of the branching point s
+                for (let node of controlFlowDependentLines) {
                     if (keepLines.has(node)) {
                         isRelevantBranchingPoint = true;
                         break;
@@ -218,19 +258,19 @@
 
             const isThrowStatement = throwCatchMapping[s] !== undefined;
 
-            if (exists || isRelevantBranchingPoint || isThrowStatement) {
-                // statement (line) is included in the slice
-                const difference = new Set([...RqExit[s]].filter(e => !kill[s].has(e)));
-                RqEntry[s] = new Set([...difference, ...gen[s]]);
+            // if any criterion is met, the dataflow equations of s must be propagated and s is then included in the slice
+            if (killsRequired || isRelevantBranchingPoint || isThrowStatement) {
+                // statement (line) s is included in the slice
+                const difference = setMinus(RqExit[s], kill[s]);
+                RqEntry[s] = setUnion(difference, gen[s]);
                 keepLines.add(s);
             }
             else {
-                // statement (line) is not included in the slice
+                // statement (line) s is not included in the slice
                 RqEntry[s] = RqExit[s];
             }
-            line = s;
+            previousLine = s;
         }
-        //console.log(RqExit);
         console.log("RqEntry ", RqEntry);
         return [...keepLines].sort((a, b) => a - b);
     }
@@ -301,10 +341,8 @@
          * an object literal, an array literal, a number, a string, a boolean, a regular expression, null, 
          * NaN, Infinity, or undefined.
          * 
-         * Remark:
-         *  - The post increment operator (i.e. ++) calls this callback with an undefined iid and a value
-         *    of 1.
-         *  - Such callbacks will be ignored.
+         * Remark: The post increment operator (i.e. ++) calls this callback with an undefined iid and a value
+         *         of 1. Such callbacks will be ignored.
          * 
          * @param {*} iid 
          * @param {*} val 
@@ -313,6 +351,7 @@
         literal: function (iid, val, hasGetterSetter) {
             const lineNumber = singleLineNumberFromIid(iid);
             if (lineNumber) {
+                // ignore callbacks with undefined iids (e.g. post-increment operators)
                 addToHistory(lineNumber);
                 slicingCriterionCallback(lineNumber);
 
@@ -326,7 +365,7 @@
                     } // now, gen(s) exists
                     kill[lineNumber].add(ALLOC(shadowId));
 
-                    // kill all property-defs
+                    // kill all property-defs at allocation
                     for (property in val) {
                         const fieldId = composeVarId(shadowId, property)
                         kill[lineNumber].add(P_DEF(fieldId));
@@ -473,6 +512,12 @@
          * - As a result, the SwitchStatement discriminant node will be considered if at least one of
          *   the cases is true. Otherwise, the entire SwitchStatement node will be excluded.
          * - All the mappings are based on line numbers of the discriminant node and the 'case' nodes.
+         * 
+         * Break / Contine Statements
+         * - Any break statement, that is control-flow dependent upon a conditional, which is executed, is
+         *   included in the slice
+         * - This is might be an overapproximation of the slice in case the break does not change the programs
+         *   output. Detecting that, however, is hard.
          * @param {*} iid 
          * @param {*} val 
          */
@@ -481,7 +526,9 @@
             addToHistory(lineNumber);
             slicingCriterionCallback(lineNumber);
 
+            // detect the type of the branching construct
             if (caseSwitchMapping && caseSwitchMapping[lineNumber] !== undefined) {
+                // branching happend at SwitchCase node
                 const caseLine = lineNumber; // just an alias for readability
                 if (val) {
                     // test-condition is true, consequent node will be executed
@@ -508,18 +555,15 @@
         },
 
         /**
-         * This callback is called when an execution terminates in node.js.  In a browser
-         * environment, the callback is called if ChainedAnalyses.js or ChainedAnalysesNoCheck.js
-         * is used and Alt-Shift-T is pressed.
-         *
-         * @returns {undefined} - Any return value is ignored
+         * This callback is called when an execution terminates in node.js.
+         * Writes the output artifacts of the dynamic analysis into a *_analysis_out.json file.
          */
         endExecution: function () {
             console.log("INIT-PARAMS ", J$.initParams)
             console.log("GEN ", gen);
             console.log("KILL ", kill);
             console.log("HISTORY ", history);
-            const locs = simpleAnalysis();
+            const locs = extendedDataflowAnalysis();
             console.log(`The slice contains the following LOCs: ${locs}`);
             console.log("MISSING DECLARATIONS: ", missingDeclarations);
 

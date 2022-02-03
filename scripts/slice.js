@@ -15,23 +15,19 @@
 
         console.log("running slice.js for arguments: " + inFile, outFile, lineNb);
 
+        // generate filenames for future artifacts
         const instrumentedCodeFile = inFile.replace(".js", "_jalangi_.js");
         const astInfoFile = inFile.replace('.js', '_astInfo_.json');
         const analyisOutFile = inFile.replace(".js", "_analysis_out_.json");
 
         // before running the dynamic analysis, delete all previous artifacts
+        const deleteFiles = [instrumentedCodeFile, astInfoFile, analyisOutFile, outFile]
         const fs = require('fs');
-
-        const deleteFile = function (fileName) {
+        deleteFiles.forEach(file => {
             try {
-                fs.unlinkSync(fileName);
+                fs.unlinkSync(file);
             } catch (err) { }
-        }
-
-        deleteFile(instrumentedCodeFile);
-        deleteFile(astInfoFile);
-        deleteFile(analyisOutFile);
-        deleteFile(outFile);
+        })
 
         // Load script to be analyzed
         const inCode = fs.readFileSync(inFile, 'utf-8');
@@ -83,6 +79,7 @@
             fs.writeFileSync(outFile, outputCode, { encoding: 'utf-8' });
         }
 
+        // link the function as a callback to the analysis' promise
         analysisPromise.then(successfulResolve, value => console.log("failed", value));
     }
 
