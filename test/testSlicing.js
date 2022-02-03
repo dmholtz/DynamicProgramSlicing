@@ -76,7 +76,7 @@ describe('slice.js should be able to', function () {
         runTestCaseList(testCases);
     });
     describe('deal with error handling within functions', function () {
-        testCases = read_criteria_file('scripts/errorHandling_testCases.json');
+        testCases = read_criteria_file('scripts/testcases_errorhandling.json');
         runTestCaseList(testCases);
     });
     describe('deal with loops', function () {

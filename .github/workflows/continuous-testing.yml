@@ -59,3 +59,4 @@ jobs:
         node testRunner.js --source testcases_milestone3.json
         node testRunner.js --source testcases_controlflow.json
         node testRunner.js --source testcases_dataflow.json
+        node testRunner.js --source testcases_errorhandling.json
