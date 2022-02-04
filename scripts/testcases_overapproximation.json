@@ -1,5 +1,5 @@
 [
-    {"inFile": "../testcases/overapproximation/jumpDetection_in.js", "outFile": "../testcases/overapproximation/jumpDetection_predicted_out.js", "lineNb":11, "goldFile": "../testcases/overapproximation/jumpDetection_out.js"},
+    {"inFile": "../testcases/overapproximation/jumpDetection_in.js", "outFile": "../testcases/overapproximation/jumpDetection_predicted_out.js", "lineNb":10, "goldFile": "../testcases/overapproximation/jumpDetection_out.js"},
     {"inFile": "../testcases/overapproximation/emptyTry_in.js", "outFile": "../testcases/overapproximation/emptyTry_predicted_out.js", "lineNb":7, "goldFile": "../testcases/overapproximation/emptyTry_out.js"}
 ]
     
