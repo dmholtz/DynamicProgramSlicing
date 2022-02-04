@@ -37,7 +37,7 @@
         const switchCaseMapping = gatherSwitchStatements(ast);
         // object, that maps lines of branching points to a list of their control flow dependet lines
         const controlFlowDependencies = getControlFlowDependencies(ast);
-        // object, that maps lines of branching points to a list of their control flow dependent break / continue statements
+        // object, that maps lines of branching points to their control flow dependent break / continue statement for both the positive and the negative branch
         const breakContinueTriggers = getBreakContinueTriggers(ast, controlFlowDependencies);
         // object, that maps lines of throw statements to the associated catch-block, denoted by an object { catchStart: #lineNr, catchEnd: #lineNr }
         const throwCatchMapping = getThrowCatchMapping(ast);
@@ -149,6 +149,7 @@
 
                 if (node.type === 'IfStatement'
                     || node.type === 'ForStatement'
+                    || node.type === 'ForInStatement'
                     || node.type === 'WhileStatement'
                     || node.type === 'SwitchStatement') {
                     dependentNodeStack.push(lineNumber);
@@ -186,6 +187,7 @@
             leave: (node, _) => {
                 if (node.type === 'IfStatement'
                     || node.type === 'ForStatement'
+                    || node.type === 'ForInStatement'
                     || node.type === 'WhileStatement'
                     || node.type === 'DoWhileStatement') {
                     dependentNodeStack.pop();
@@ -222,8 +224,12 @@
     }
 
     /**
-     * Computes for every branching points a list of control flow dependent
-     * Break or Continue Statments.
+     * Computes for every branching points the control flow dependent
+     * Break or Continue Statments and decides, in what branch (positive
+     * or negative it occured). This allows a unique identification of the
+     * first (and only) executed jumping point
+     * 
+     * {'true': lineNbr, 'false': lineNbr}
      * 
      * Remark:
      * - Computation relies on correctly computed controlFlowDependencies
@@ -240,10 +246,10 @@
                 const dependentLines = controlFlowDependencies[trigger];
                 if (dependentLines.includes(breakContinueLine)) {
                     if (!breakContinueTriggers[trigger]) {
-                        breakContinueTriggers[trigger] = [breakContinueLine];
+                        breakContinueTriggers[trigger] = { 'unknown': [breakContinueLine] };
                     }
                     else {
-                        breakContinueTriggers[trigger].push(breakContinueLine);
+                        breakContinueTriggers[trigger]['unknown'].push(breakContinueLine);
                     }
                 }
             }
@@ -256,7 +262,6 @@
                 if (node.type === 'BreakStatement' || node.type === 'ContinueStatement') {
                     addTrigger(lineNumber);
                 }
-
             },
             leave: (node, _) => {
             }
@@ -264,6 +269,64 @@
 
         // using estraverse.traverse the AST is traversed and the information is accumulated
         estraverse.traverse(ast, visitor);
+
+        const isLineContainedInNode = function (line, node) {
+            const startLine = node.loc.start.line;
+            const endLine = node.loc.end.line;
+            return startLine <= line && line <= endLine;
+        };
+
+        // checks for the positive or negative branch
+        const refineWithCheck = function (node, trueNodeName, falseNodeName, lineNumber) {
+            for (let breakLine of breakContinueTriggers[lineNumber]['unknown']) {
+                if (isLineContainedInNode(breakLine, node[trueNodeName]) && !breakContinueTriggers[lineNumber]['true']) {
+                    breakContinueTriggers[lineNumber]['true'] = breakLine;
+                } else if (falseNodeName && isLineContainedInNode(breakLine, node[falseNodeName]) && !breakContinueTriggers[lineNumber]['false']) {
+                    breakContinueTriggers[lineNumber]['false'] = breakLine;
+                } else {
+                    // ignore further occurences
+                }
+            }
+            delete breakContinueTriggers[lineNumber].unknown;
+        }
+
+        // does not check for the positive or negative branch but assigns the positive branch as default
+        const refineNoCheck = function (triggerLineNumber) {
+            for (let breakLine of breakContinueTriggers[triggerLineNumber]['unknown']) {
+                if (!breakContinueTriggers[triggerLineNumber]['true']) {
+                    breakContinueTriggers[triggerLineNumber]['true'] = breakLine;
+                }
+                delete breakContinueTriggers[triggerLineNumber].unknown;
+            }
+        }
+
+        // define traverse rules
+        let refineVisitor = {
+            enter: (node, _) => {
+                const firstLine = firstLineOfNode(node);
+                const lastLine = lastLineOfNode(node);
+
+                // Check if node is a potential trigger ()
+                if (breakContinueTriggers[firstLine] || breakContinueTriggers[lastLine]) {
+                    if (node.type === 'IfStatement') {
+                        refineWithCheck(node, 'consequent', 'alternate', firstLine);
+                    } else if (node.type === 'ForStatement'
+                        || node.type === 'ForInStatement'
+                        || node.type === 'WhileStatement'
+                        || node.type === 'SwitchCase') {
+                        refineNoCheck(firstLine);
+                    } else if (node.type === 'DoWhileStatement') {
+                        // DoWhileStatements are identified by the last line
+                        refineNoCheck(lastLine);
+                    }
+                }
+            },
+            leave: (node, _) => {
+            }
+        }
+
+        // using estraverse.traverse the AST is traversed and the information is accumulated
+        estraverse.traverse(ast, refineVisitor);
 
         return breakContinueTriggers;
     }

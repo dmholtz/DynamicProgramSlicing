@@ -514,14 +514,17 @@
          * - All the mappings are based on line numbers of the discriminant node and the 'case' nodes.
          * 
          * Break / Contine Statements
-         * - Any break statement, that is control-flow dependent upon a conditional, which is executed, is
-         *   included in the slice
+         * - All break or continue statements, that are executed, are included in the slice. In particular
+         *   unreachable breaks are NOT included.
+         * - The first break statement, that is control-flow dependent upon a conditional, which is executed, is
+         *   included in the slice. The logicalValue of the conditional (true = consequent branch, 
+         *   false = alternate branch) is respected.
          * - This is might be an overapproximation of the slice in case the break does not change the programs
          *   output. Detecting that, however, is hard.
          * @param {*} iid 
-         * @param {*} val 
+         * @param {*} logicalValue 
          */
-        conditional: function (iid, val) {
+        conditional: function (iid, logicalValue) {
             const lineNumber = singleLineNumberFromIid(iid);
             addToHistory(lineNumber);
             slicingCriterionCallback(lineNumber);
@@ -530,26 +533,22 @@
             if (caseSwitchMapping && caseSwitchMapping[lineNumber] !== undefined) {
                 // branching happend at SwitchCase node
                 const caseLine = lineNumber; // just an alias for readability
-                if (val) {
+                if (logicalValue) {
                     // test-condition is true, consequent node will be executed
                     const switchLine = Number(caseSwitchMapping[caseLine]);
                     branchingPoints.add(switchLine);
                     branchingPoints.add(caseLine);
                     if (breakContinueTriggers[caseLine]) {
-                        const breakContinueLines = breakContinueTriggers[lineNumber]
-                        for (let bc of breakContinueLines) {
-                            keepLines.add(bc);
-                        }
+                        const breakContinueLine = breakContinueTriggers[lineNumber][logicalValue]
+                        keepLines.add(breakContinueLine);
                     }
                 }
             } else {
                 // any other branching construct (e.g. if, while, for, ?:, ...)
                 branchingPoints.add(lineNumber);
                 if (breakContinueTriggers[lineNumber]) {
-                    const breakContinueLines = breakContinueTriggers[lineNumber];
-                    for (let bc of breakContinueLines) {
-                        keepLines.add(bc);
-                    }
+                    const breakContinueLine = breakContinueTriggers[lineNumber][logicalValue];
+                    keepLines.add(breakContinueLine);
                 }
             }
         },
