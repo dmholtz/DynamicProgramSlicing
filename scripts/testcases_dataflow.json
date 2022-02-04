@@ -1,0 +1,10 @@
+[
+    {"inFile": "../testcases/dataflow/test1_in.js", "outFile": "../testcases/dataflow/test1_predicted_out.js", "lineNb":12, "goldFile": "../testcases/dataflow/test1_out.js"},
+    {"inFile": "../testcases/dataflow/test2_in.js", "outFile": "../testcases/dataflow/test2_predicted_out.js", "lineNb":15, "goldFile": "../testcases/dataflow/test2_out.js"},
+    {"inFile": "../testcases/dataflow/test3_in.js", "outFile": "../testcases/dataflow/test3_predicted_out.js", "lineNb":5, "goldFile": "../testcases/dataflow/test3_out.js"},
+    {"inFile": "../testcases/dataflow/test4_in.js", "outFile": "../testcases/dataflow/test4_predicted_out.js", "lineNb":5, "goldFile": "../testcases/dataflow/test4_out.js"},
+    {"inFile": "../testcases/dataflow/regex_in.js", "outFile": "../testcases/dataflow/regex_predicted_out.js", "lineNb":20, "goldFile": "../testcases/dataflow/regex_out.js"}
+]
+    
+    
+    

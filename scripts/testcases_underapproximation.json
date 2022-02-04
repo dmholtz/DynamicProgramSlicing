@@ -1,0 +1,4 @@
+[
+    {"inFile": "../testcases/underapproximation/functionObject_in.js", "outFile": "../testcases/underapproximation/functionObject_predicted_out.js", "lineNb":9, "goldFile": "../testcases/underapproximation/functionObject_out.js"}
+]
+    

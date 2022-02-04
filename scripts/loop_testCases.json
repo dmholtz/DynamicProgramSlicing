@@ -1,4 +1,0 @@
-[
-    {"inFile": "../testcases/loops/test1_in.js", "outFile": "../testcases/loops/test1_predicted_out.js", "lineNb":4, "goldFile": "../testcases/loops/test1_out.js"}
-]
-    
