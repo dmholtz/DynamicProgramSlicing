@@ -1,4 +1,7 @@
 [
+    {"inFile": "../testcases/dataflow/implicit1_in.js", "outFile": "../testcases/dataflow/implicit1_predicted_out.js", "lineNb":7, "goldFile": "../testcases/dataflow/implicit1_out.js"},
+    {"inFile": "../testcases/dataflow/implicit2_in.js", "outFile": "../testcases/dataflow/implicit2_predicted_out.js", "lineNb":13, "goldFile": "../testcases/dataflow/implicit2_out.js"},
+    {"inFile": "../testcases/dataflow/implicit3_in.js", "outFile": "../testcases/dataflow/implicit3_predicted_out.js", "lineNb":9, "goldFile": "../testcases/dataflow/implicit3_out.js"},
     {"inFile": "../testcases/dataflow/test1_in.js", "outFile": "../testcases/dataflow/test1_predicted_out.js", "lineNb":12, "goldFile": "../testcases/dataflow/test1_out.js"},
     {"inFile": "../testcases/dataflow/test2_in.js", "outFile": "../testcases/dataflow/test2_predicted_out.js", "lineNb":15, "goldFile": "../testcases/dataflow/test2_out.js"},
     {"inFile": "../testcases/dataflow/test3_in.js", "outFile": "../testcases/dataflow/test3_predicted_out.js", "lineNb":5, "goldFile": "../testcases/dataflow/test3_out.js"},
