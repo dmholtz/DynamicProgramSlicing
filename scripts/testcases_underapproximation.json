@@ -1,4 +1,5 @@
 [
+    {"inFile": "../testcases/underapproximation/array2_in.js", "outFile": "../testcases/underapproximation/array2_predicted_out.js", "lineNb":5, "goldFile": "../testcases/underapproximation/array2_out.js"},
     {"inFile": "../testcases/underapproximation/functionObject_in.js", "outFile": "../testcases/underapproximation/functionObject_predicted_out.js", "lineNb":9, "goldFile": "../testcases/underapproximation/functionObject_out.js"},
     {"inFile": "../testcases/underapproximation/deleteOperator_in.js", "outFile": "../testcases/underapproximation/deleteOperator_predicted_out.js", "lineNb":9, "goldFile": "../testcases/underapproximation/deleteOperator_out.js"}
 ]

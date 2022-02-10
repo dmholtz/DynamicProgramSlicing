@@ -1,8 +1,11 @@
+const { removeAllListeners } = require('process');
+
 (function () {
 
     // output artifacts
     let missingDeclarations = new Set();    // set of variable declarations for AST postprocessing
     const keepLines = new Set();            // set of line numbers that are included in the slice
+    const removeLines = new Set();          // set of line numbers that are excluded from the slice
 
     // intermediate artifacts
     let history = [];   // tracks the sequence of executed lines in the input program
@@ -257,9 +260,10 @@
             }
 
             const isThrowStatement = throwCatchMapping[s] !== undefined;
+            const isExcludedStatement = removeLines.has(s);
 
             // if any criterion is met, the dataflow equations of s must be propagated and s is then included in the slice
-            if (killsRequired || isRelevantBranchingPoint || isThrowStatement) {
+            if ((killsRequired || isRelevantBranchingPoint || isThrowStatement) && !isExcludedStatement) {
                 // statement (line) s is included in the slice
                 const difference = setMinus(RqExit[s], kill[s]);
                 RqEntry[s] = setUnion(difference, gen[s]);
@@ -542,6 +546,10 @@
                         const breakContinueLine = breakContinueTriggers[lineNumber][logicalValue]
                         keepLines.add(breakContinueLine);
                     }
+                }
+                else {
+                    // test-condition is false, consequent node will not be included
+                    removeLines.add(caseLine);
                 }
             } else {
                 // any other branching construct (e.g. if, while, for, ?:, ...)
