@@ -6,9 +6,11 @@ See `report.pdf` for more details about the proposed algorithm.
 
 ### Using npm and Mocha:
 
-1. `npm run build --if-present`
+1. `npm ci`
 
-2. `npm test`
+2. `npm run build --if-present`
+
+3. `npm test`
 
 ### Using the `testRunner.js` script:
 
